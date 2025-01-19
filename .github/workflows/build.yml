@@ -30,6 +30,11 @@ jobs:
       - name: Build
         run: ./gradlew build -Pcommit=${{ github.sha }} -Pdevbuild=${{ steps.dev-build.outputs.number }}
 
+      - name: List Build Directory
+        run: |
+          echo "Listing build directory contents:"
+          ls -R build/libs/
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -47,6 +52,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/libs/meteor-client-${{ steps.dev-build.outputs.number }}.jar
+          asset_path: ./build/libs/meteor-client-*.jar
           asset_name: meteor-client-${{ steps.dev-build.outputs.number }}.jar
           asset_content_type: application/java-archive
