@@ -35,7 +35,7 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.NoteBlock;
-import net.minecraft.block.enums.NoteBlockInstrument;
+import net.minecraft.block.enums.Instrument;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
 import net.minecraft.sound.SoundEvents;
@@ -254,7 +254,7 @@ public class Notebot extends Module {
     public Notebot() {
         super(Categories.Misc, "notebot", "Plays noteblock nicely");
 
-        for (NoteBlockInstrument inst : NoteBlockInstrument.values()) {
+        for (Instrument inst : Instrument.values()) {
             NotebotUtils.OptionalInstrument optionalInstrument = NotebotUtils.OptionalInstrument.fromMinecraftInstrument(inst);
             if (optionalInstrument != null) {
                 sgNoteMap.add(new EnumSetting.Builder<NotebotUtils.OptionalInstrument>()
@@ -473,7 +473,7 @@ public class Notebot extends Module {
         // Modifiable list of unique notes
         List<Note> uniqueNotesToUse = new ArrayList<>(song.getRequirements());
         // A map with noteblocks that have incorrect note level
-        Map<NoteBlockInstrument, List<BlockPos>> incorrectNoteBlocks = new HashMap<>();
+        Map<Instrument, List<BlockPos>> incorrectNoteBlocks = new HashMap<>();
 
         // Check if there are already tuned noteblocks
         for (var entry : scannedNoteblocks.asMap().entrySet()) {
@@ -502,7 +502,7 @@ public class Notebot extends Module {
             List<BlockPos> positions = entry.getValue();
 
             if (mode.get() == NotebotUtils.NotebotMode.ExactInstruments) {
-                NoteBlockInstrument inst = entry.getKey();
+                Instrument inst = entry.getKey();
 
                 List<Note> foundNotes = uniqueNotesToUse.stream()
                     .filter(note -> note.getInstrument() == inst)
@@ -751,7 +751,7 @@ public class Notebot extends Module {
                     error("Loading song '" + FilenameUtils.getBaseName(file.getName()) + "' was cancelled.");
                 } else {
                     error("An error occurred while loading song '" + FilenameUtils.getBaseName(file.getName()) + "'. See the logs for more details");
-                    MeteorClient.LOG.error("An error occurred while loading song '{}'", FilenameUtils.getBaseName(file.getName()), ex);
+                    MeteorClient.LOG.error("An error occurred while loading song '" + FilenameUtils.getBaseName(file.getName()) + "'", ex);
                     onSongEnd();
                 }
             }
@@ -936,13 +936,13 @@ public class Notebot extends Module {
     }
 
     /**
-     * Gets an NoteBlockInstrument from Note Map
+     * Gets an Instrument from Note Map
      *
      * @param inst An instrument
      * @return A new instrument mapped by instrument given in parameters
      */
     @Nullable
-    public NoteBlockInstrument getMappedInstrument(@NotNull NoteBlockInstrument inst) {
+    public Instrument getMappedInstrument(@NotNull Instrument inst) {
         if (mode.get() == NotebotUtils.NotebotMode.ExactInstruments) {
             NotebotUtils.OptionalInstrument optionalInstrument = (NotebotUtils.OptionalInstrument) sgNoteMap.getByIndex(inst.ordinal()).get();
             return optionalInstrument.toMinecraftInstrument();

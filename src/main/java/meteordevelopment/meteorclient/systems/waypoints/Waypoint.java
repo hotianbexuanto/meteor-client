@@ -20,7 +20,6 @@ import net.minecraft.util.math.BlockPos;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 public class Waypoint implements ISerializable<Waypoint> {
     public final Settings settings = new Settings();
@@ -94,19 +93,9 @@ public class Waypoint implements ISerializable<Waypoint> {
         .build()
     );
 
-    public final UUID uuid;
-
-    private Waypoint() {
-        uuid = UUID.randomUUID();
-    }
-
+    private Waypoint() {}
     public Waypoint(NbtElement tag) {
-        NbtCompound nbt = (NbtCompound) tag;
-
-        if (nbt.containsUuid("uuid")) uuid = nbt.getUuid("uuid");
-        else uuid = UUID.randomUUID();
-
-        fromTag(nbt);
+        fromTag((NbtCompound) tag);
     }
 
     public void renderIcon(double x, double y, double a, double size) {
@@ -188,7 +177,6 @@ public class Waypoint implements ISerializable<Waypoint> {
     public NbtCompound toTag() {
         NbtCompound tag = new NbtCompound();
 
-        tag.putUuid("uuid", uuid);
         tag.put("settings", settings.toTag());
 
         return tag;
@@ -208,16 +196,6 @@ public class Waypoint implements ISerializable<Waypoint> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Waypoint waypoint = (Waypoint) o;
-        return Objects.equals(uuid, waypoint.uuid);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(uuid);
-    }
-
-    @Override
-    public String toString() {
-        return name.get();
+        return Objects.equals(waypoint.name.get(), this.name.get());
     }
 }

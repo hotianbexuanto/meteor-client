@@ -37,6 +37,7 @@ public class AccountsScreen extends WindowScreen {
 
         addButton(l, "Cracked", () -> mc.setScreen(new AddCrackedAccountScreen(theme, this)));
         addButton(l, "Altening", () -> mc.setScreen(new AddAlteningAccountScreen(theme, this)));
+        addButton(l, "EasyMC", () -> mc.setScreen(new AddEasyMCAccountScreen(theme, this)));
         addButton(l, "Microsoft", () -> mc.setScreen(new AddMicrosoftAccountScreen(theme, this)));
     }
 

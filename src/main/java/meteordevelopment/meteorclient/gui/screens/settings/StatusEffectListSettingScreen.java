@@ -19,7 +19,7 @@ import net.minecraft.registry.Registries;
 import java.util.List;
 import java.util.Optional;
 
-public class StatusEffectListSettingScreen extends RegistryListSettingScreen<StatusEffect> {
+public class StatusEffectListSettingScreen extends LeftRightListSettingScreen<StatusEffect> {
     public StatusEffectListSettingScreen(GuiTheme theme, Setting<List<StatusEffect>> setting) {
         super(theme, "Select Effects", setting, setting.get(), Registries.STATUS_EFFECT);
     }
@@ -37,14 +37,10 @@ public class StatusEffectListSettingScreen extends RegistryListSettingScreen<Sta
     private ItemStack getPotionStack(StatusEffect effect) {
         ItemStack potion = Items.POTION.getDefaultStack();
 
-        potion.set(
-            DataComponentTypes.POTION_CONTENTS,
-            new PotionContentsComponent(
-                potion.get(DataComponentTypes.POTION_CONTENTS).potion(),
-                Optional.of(effect.getColor()),
-                potion.get(DataComponentTypes.POTION_CONTENTS).customEffects(),
-                Optional.empty()
-            )
+        potion.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(
+            potion.get(DataComponentTypes.POTION_CONTENTS).potion(),
+            Optional.of(effect.getColor()),
+            potion.get(DataComponentTypes.POTION_CONTENTS).customEffects())
         );
 
         return potion;

@@ -13,7 +13,7 @@ public class StorageOutlineShader extends PostProcessShader {
 
     @Override
     protected void preDraw() {
-        framebuffer.clear();
+        framebuffer.clear(false);
         framebuffer.beginWrite(false);
     }
 

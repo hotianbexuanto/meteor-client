@@ -5,9 +5,12 @@
 
 package meteordevelopment.meteorclient.utils;
 
-import com.mojang.blaze3d.systems.ProjectionType;
 import com.mojang.blaze3d.systems.RenderSystem;
-import it.unimi.dsi.fastutil.objects.*;
+import com.mojang.blaze3d.systems.VertexSorter;
+import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.gui.tabs.TabScreen;
@@ -17,7 +20,6 @@ import meteordevelopment.meteorclient.settings.StatusEffectAmplifierMapSetting;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.render.BetterTooltips;
 import meteordevelopment.meteorclient.systems.modules.world.Timer;
-import meteordevelopment.meteorclient.utils.misc.Names;
 import meteordevelopment.meteorclient.utils.player.EChestMemory;
 import meteordevelopment.meteorclient.utils.render.PeekScreen;
 import meteordevelopment.meteorclient.utils.render.color.Color;
@@ -33,6 +35,7 @@ import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
 import net.minecraft.client.resource.ResourceReloadLogger;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.component.ComponentMap;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
@@ -44,7 +47,6 @@ import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.item.*;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.collection.DefaultedList;
@@ -52,7 +54,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.chunk.Chunk;
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Range;
 import org.joml.Matrix4f;
@@ -82,6 +84,7 @@ public class Utils {
     public static boolean rendering3D = true;
     public static double frameTime;
     public static Screen screenToOpen;
+    public static VertexSorter vertexSorter;
 
     private Utils() {
     }
@@ -142,58 +145,28 @@ public class Utils {
         return BlockEntityIterator::new;
     }
 
-    public static void getEnchantments(ItemStack itemStack, Object2IntMap<RegistryEntry<Enchantment>> enchantments) {
+    public static void getEnchantments(ItemStack itemStack, Object2IntMap<Enchantment> enchantments) {
         enchantments.clear();
 
         if (!itemStack.isEmpty()) {
-            Set<Object2IntMap.Entry<RegistryEntry<Enchantment>>> itemEnchantments = itemStack.getItem() == Items.ENCHANTED_BOOK
-                ? itemStack.get(DataComponentTypes.STORED_ENCHANTMENTS).getEnchantmentEntries()
-                : itemStack.getEnchantments().getEnchantmentEntries();
+            Set<RegistryEntry<Enchantment>> itemEnchantments = itemStack.getItem() == Items.ENCHANTED_BOOK
+                ? itemStack.get(DataComponentTypes.STORED_ENCHANTMENTS).getEnchantments()
+                : itemStack.getEnchantments().getEnchantments();
 
-            for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : itemEnchantments) {
-                enchantments.put(entry.getKey(), entry.getIntValue());
+            for (RegistryEntry<Enchantment> itemEnchantment : itemEnchantments) {
+                enchantments.put(itemEnchantment.value(), itemStack.getEnchantments().getLevel(itemEnchantment.value()));
             }
         }
     }
 
-    public static int getEnchantmentLevel(ItemStack itemStack, RegistryKey<Enchantment> enchantment) {
-        if (itemStack.isEmpty()) return 0;
-        Object2IntMap<RegistryEntry<Enchantment>> itemEnchantments = new Object2IntArrayMap<>();
-        getEnchantments(itemStack, itemEnchantments);
-        return getEnchantmentLevel(itemEnchantments, enchantment);
-    }
-
-    public static int getEnchantmentLevel(Object2IntMap<RegistryEntry<Enchantment>> itemEnchantments, RegistryKey<Enchantment> enchantment) {
-        for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : Object2IntMaps.fastIterable(itemEnchantments)) {
-            if (entry.getKey().matchesKey(enchantment)) return entry.getIntValue();
-        }
-        return 0;
-    }
-
-    @SafeVarargs
-    public static boolean hasEnchantments(ItemStack itemStack, RegistryKey<Enchantment>... enchantments) {
+    public static boolean hasEnchantments(ItemStack itemStack, Enchantment... enchantments) {
         if (itemStack.isEmpty()) return false;
-        Object2IntMap<RegistryEntry<Enchantment>> itemEnchantments = new Object2IntArrayMap<>();
-        getEnchantments(itemStack, itemEnchantments);
 
-        for (RegistryKey<Enchantment> enchantment : enchantments) {
-            if (!hasEnchantment(itemEnchantments, enchantment)) return false;
-        }
+        Object2IntMap<Enchantment> itemEnchantments = new Object2IntArrayMap<>();
+        getEnchantments(itemStack, itemEnchantments);
+        for (Enchantment enchantment : enchantments) if (!itemEnchantments.containsKey(enchantment)) return false;
+
         return true;
-    }
-
-    public static boolean hasEnchantment(ItemStack itemStack, RegistryKey<Enchantment> enchantmentKey) {
-        if (itemStack.isEmpty()) return false;
-        Object2IntMap<RegistryEntry<Enchantment>> itemEnchantments = new Object2IntArrayMap<>();
-        getEnchantments(itemStack, itemEnchantments);
-        return hasEnchantment(itemEnchantments, enchantmentKey);
-    }
-
-    private static boolean hasEnchantment(Object2IntMap<RegistryEntry<Enchantment>> itemEnchantments, RegistryKey<Enchantment> enchantmentKey) {
-        for (RegistryEntry<Enchantment> enchantment : itemEnchantments.keySet()) {
-            if (enchantment.matchesKey(enchantmentKey)) return true;
-        }
-        return false;
     }
 
     public static int getRenderDistance() {
@@ -209,12 +182,13 @@ public class Utils {
     }
 
     public static void unscaledProjection() {
-        RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0, mc.getWindow().getFramebufferWidth(), mc.getWindow().getFramebufferHeight(), 0, 1000, 21000), ProjectionType.ORTHOGRAPHIC);
+        vertexSorter = RenderSystem.getVertexSorting();
+        RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0, mc.getWindow().getFramebufferWidth(), mc.getWindow().getFramebufferHeight(), 0, 1000, 21000), VertexSorter.BY_Z);
         rendering3D = false;
     }
 
     public static void scaledProjection() {
-        RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0, (float) (mc.getWindow().getFramebufferWidth() / mc.getWindow().getScaleFactor()), (float) (mc.getWindow().getFramebufferHeight() / mc.getWindow().getScaleFactor()), 0, 1000, 21000), ProjectionType.PERSPECTIVE);
+        RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0, (float) (mc.getWindow().getFramebufferWidth() / mc.getWindow().getScaleFactor()), (float) (mc.getWindow().getFramebufferHeight() / mc.getWindow().getScaleFactor()), 0, 1000, 21000), vertexSorter);
         rendering3D = true;
     }
 
@@ -272,16 +246,13 @@ public class Utils {
         if (shulkerItem.getItem() instanceof BlockItem blockItem) {
             Block block = blockItem.getBlock();
             if (block == Blocks.ENDER_CHEST) return BetterTooltips.ECHEST_COLOR;
-
             if (block instanceof ShulkerBoxBlock shulkerBlock) {
                 DyeColor dye = shulkerBlock.getColor();
                 if (dye == null) return WHITE;
-
-                final int color = dye.getEntityColor();
-                return new Color((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, 255);
+                final float[] colors = dye.getColorComponents();
+                return new Color(colors[0], colors[1], colors[2], 1f);
             }
         }
-
         return WHITE;
     }
 
@@ -297,8 +268,8 @@ public class Utils {
         return new Reference2IntArrayMap<>(StatusEffectAmplifierMapSetting.EMPTY_STATUS_EFFECT_MAP);
     }
 
-    public static String getEnchantSimpleName(RegistryEntry<Enchantment> enchantment, int length) {
-        String name = Names.get(enchantment);
+    public static String getEnchantSimpleName(Enchantment enchantment, int length) {
+        String name = I18n.translate(enchantment.getTranslationKey());
         return name.length() > length ? name.substring(0, length) : name;
     }
 
@@ -482,13 +453,19 @@ public class Utils {
 
     public static byte[] readBytes(InputStream in) {
         try {
-            return in.readAllBytes();
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+            byte[] buffer = new byte[256];
+            int read;
+            while ((read = in.read(buffer)) > 0) out.write(buffer, 0, read);
+
+            in.close();
+            return out.toByteArray();
         } catch (IOException e) {
-            MeteorClient.LOG.error("Error reading from stream.", e);
-            return new byte[0];
-        } finally {
-            IOUtils.closeQuietly(in);
+            e.printStackTrace();
         }
+
+        return new byte[0];
     }
 
     public static boolean canUpdate() {
@@ -514,21 +491,13 @@ public class Utils {
     }
 
     public static void leftClick() {
-        // check if a screen is open
-        // see net.minecraft.client.Mouse.lockCursor
-        // see net.minecraft.client.MinecraftClient.tick
-        int attackCooldown = ((MinecraftClientAccessor) mc).getAttackCooldown();
-        if (attackCooldown == 10000) {
-            ((MinecraftClientAccessor) mc).setAttackCooldown(0);
-        }
-
         mc.options.attackKey.setPressed(true);
         ((MinecraftClientAccessor) mc).leftClick();
         mc.options.attackKey.setPressed(false);
     }
 
     public static void rightClick() {
-        ((IMinecraftClient) mc).meteor$rightClick();
+        ((IMinecraftClient) mc).rightClick();
     }
 
     public static boolean isShulker(Item item) {
@@ -539,7 +508,7 @@ public class Utils {
         return item instanceof ExperienceBottleItem || item instanceof BowItem || item instanceof CrossbowItem || item instanceof SnowballItem || item instanceof EggItem || item instanceof EnderPearlItem || item instanceof SplashPotionItem || item instanceof LingeringPotionItem || item instanceof FishingRodItem || item instanceof TridentItem;
     }
 
-    public static void addEnchantment(ItemStack itemStack, RegistryEntry<Enchantment> enchantment, int level) {
+    public static void addEnchantment(ItemStack itemStack, Enchantment enchantment, int level) {
         ItemEnchantmentsComponent.Builder b = new ItemEnchantmentsComponent.Builder(EnchantmentHelper.getEnchantments(itemStack));
         b.add(enchantment, level);
 

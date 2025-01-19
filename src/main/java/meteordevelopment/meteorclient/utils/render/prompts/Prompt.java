@@ -15,13 +15,13 @@ import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 @SuppressWarnings("unchecked") // cant instantiate a Prompt directly so this is fine
 public abstract class Prompt<T> {
-    protected final GuiTheme theme;
-    protected final Screen parent;
+    final GuiTheme theme;
+    final Screen parent;
 
-    protected String title = "";
-    protected final List<String> messages = new ArrayList<>();
-    protected boolean dontShowAgainCheckboxVisible = true;
-    protected String id = null;
+    String title = "";
+    final List<String> messages = new ArrayList<>();
+    boolean dontShowAgainCheckboxVisible = true;
+    String id = null;
 
     protected Prompt(GuiTheme theme, Screen parent) {
         this.theme = theme;
@@ -54,7 +54,8 @@ public abstract class Prompt<T> {
     }
 
     public boolean show() {
-        if (id != null && Config.get().dontShowAgainPrompts.contains(id)) return false;
+        if (id == null) this.id(this.title);
+        if (Config.get().dontShowAgainPrompts.contains(id)) return false;
 
         if (!RenderSystem.isOnRenderThread()) {
             RenderSystem.recordRenderCall(() -> mc.setScreen(new PromptScreen(theme)));
@@ -66,17 +67,11 @@ public abstract class Prompt<T> {
         return true;
     }
 
-    protected void dontShowAgain(PromptScreen screen) {
-        if (screen.dontShowAgainCheckbox != null && screen.dontShowAgainCheckbox.checked && id != null) {
-            Config.get().dontShowAgainPrompts.add(id);
-        }
-    }
-
-    protected abstract void initialiseWidgets(PromptScreen screen);
+    abstract void initialiseWidgets(PromptScreen screen);
 
     protected class PromptScreen extends WindowScreen {
-        protected WCheckbox dontShowAgainCheckbox;
-        protected WHorizontalList list;
+        WCheckbox dontShowAgainCheckbox;
+        WHorizontalList list;
 
         public PromptScreen(GuiTheme theme) {
             super(theme, Prompt.this.title);

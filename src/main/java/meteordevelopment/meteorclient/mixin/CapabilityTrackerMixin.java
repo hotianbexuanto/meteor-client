@@ -18,12 +18,12 @@ public abstract class CapabilityTrackerMixin implements ICapabilityTracker {
     public abstract void setState(boolean state);
 
     @Override
-    public boolean meteor$get() {
+    public boolean get() {
         return state;
     }
 
     @Override
-    public void meteor$set(boolean state) {
+    public void set(boolean state) {
         setState(state);
     }
 }

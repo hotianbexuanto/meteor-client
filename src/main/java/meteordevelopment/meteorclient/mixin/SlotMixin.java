@@ -17,12 +17,12 @@ public abstract class SlotMixin implements ISlot {
     @Shadow @Final private int index;
 
     @Override
-    public int meteor$getId() {
+    public int getId() {
         return id;
     }
 
     @Override
-    public int meteor$getIndex() {
+    public int getIndex() {
         return index;
     }
 }

@@ -5,11 +5,11 @@
 
 package meteordevelopment.meteorclient.mixin;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.utils.Utils;
+import meteordevelopment.meteorclient.utils.misc.Version;
 import meteordevelopment.meteorclient.utils.network.Http;
 import meteordevelopment.meteorclient.utils.network.MeteorExecutor;
 import meteordevelopment.meteorclient.utils.player.TitleScreenCredits;
@@ -42,30 +42,23 @@ public abstract class TitleScreenMixin extends Screen {
                 MeteorClient.LOG.info("Checking latest version of Meteor Client");
 
                 MeteorExecutor.execute(() -> {
-                    String res = Http.get("https://meteorclient.com/api/stats")
-                        .exceptionHandler(e -> MeteorClient.LOG.error("Could not fetch version information."))
-                        .sendString();
+                    String res = Http.get("https://meteorclient.com/api/stats").sendString();
                     if (res == null) return;
 
-                    JsonElement latestBuild = JsonParser.parseString(res).getAsJsonObject()
-                        .getAsJsonObject("builds")
-                        .get(MeteorClient.VERSION.toString());
+                    Version latestVer = new Version(JsonParser.parseString(res).getAsJsonObject().get("version").getAsString());
 
-                    if (latestBuild == null)
-                        return;
-
-                    if (latestBuild.getAsInt() > Integer.parseInt(MeteorClient.BUILD_NUMBER)) {
+                    if (latestVer.isHigherThan(MeteorClient.VERSION)) {
                         YesNoPrompt.create()
                             .title("New Update")
                             .message("A new version of Meteor has been released.")
-                            .message("Your version: %s", MeteorClient.VERSION + "-" + MeteorClient.BUILD_NUMBER)
-                            .message("Latest version: %s", MeteorClient.VERSION + "-" + latestBuild.getAsInt())
+                            .message("Your version: %s", MeteorClient.VERSION)
+                            .message("Latest version: %s", latestVer)
                             .message("Do you want to update?")
                             .onYes(() -> Util.getOperatingSystem().open("https://meteorclient.com/"))
                             .onNo(() -> OkPrompt.create()
                                 .title("Are you sure?")
                                 .message("Using old versions of Meteor is not recommended")
-                                .message("and could result in issues.")
+                                .message("and could report in issues.")
                                 .id("new-update-no")
                                 .onOk(this::close)
                                 .show())

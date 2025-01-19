@@ -79,13 +79,13 @@ public class NbtCommand extends Command {
 
             if (validBasic(stack)) {
                 ComponentMap components = ComponentMapArgumentType.getComponentMap(ctx, "component");
-                MergedComponentMap stackComponents = (MergedComponentMap) stack.getComponents();
+                ComponentMapImpl stackComponents = (ComponentMapImpl) stack.getComponents();
 
                 DataResult<Unit> dataResult = ItemStack.validateComponents(components);
                 dataResult.getOrThrow(MALFORMED_ITEM_EXCEPTION::create);
 
                 ComponentChanges.Builder changesBuilder = ComponentChanges.builder();
-                Set<ComponentType<?>> types = stackComponents.getTypes();
+                Set<DataComponentType<?>> types = stackComponents.getTypes();
 
                 //set changes
                 for (Component<?> entry : components) {
@@ -94,7 +94,7 @@ public class NbtCommand extends Command {
                 }
 
                 //remove the rest
-                for (ComponentType<?> type : types) {
+                for (DataComponentType<?> type : types) {
                     changesBuilder.remove(type);
                 }
 
@@ -111,11 +111,11 @@ public class NbtCommand extends Command {
 
             if (validBasic(stack)) {
                 @SuppressWarnings("unchecked")
-                RegistryKey<ComponentType<?>> componentTypeKey = (RegistryKey<ComponentType<?>>) ctx.getArgument("component", RegistryKey.class);
+                RegistryKey<DataComponentType<?>> componentTypeKey = (RegistryKey<DataComponentType<?>>) ctx.getArgument("component", RegistryKey.class);
 
-                ComponentType<?> componentType = Registries.DATA_COMPONENT_TYPE.get(componentTypeKey);
+                DataComponentType<?> componentType = Registries.DATA_COMPONENT_TYPE.get(componentTypeKey);
 
-                MergedComponentMap components = (MergedComponentMap) stack.getComponents();
+                ComponentMapImpl components = (ComponentMapImpl) stack.getComponents();
                 components.applyChanges(ComponentChanges.builder().remove(componentType).build());
 
                 setStack(stack);
@@ -132,7 +132,7 @@ public class NbtCommand extends Command {
                     if (entry.getKey().isPresent()) return entry.getKey().get().getValue();
                     return null;
                 }, entry -> {
-                    ComponentType<?> dataComponentType = entry.value();
+                    DataComponentType<?> dataComponentType = entry.value();
                     if (dataComponentType.getCodec() != null) {
                         if (entry.getKey().isPresent()) {
                             suggestionsBuilder.suggest(entry.getKey().get().getValue().toString());

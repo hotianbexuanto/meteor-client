@@ -8,12 +8,13 @@ package meteordevelopment.meteorclient.gui.screens.settings;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.widgets.WWidget;
 import meteordevelopment.meteorclient.settings.Setting;
+import meteordevelopment.meteorclient.utils.misc.Names;
 import net.minecraft.registry.Registries;
 import net.minecraft.sound.SoundEvent;
 
 import java.util.List;
 
-public class SoundEventListSettingScreen extends RegistryListSettingScreen<SoundEvent> {
+public class SoundEventListSettingScreen extends LeftRightListSettingScreen<SoundEvent> {
     public SoundEventListSettingScreen(GuiTheme theme, Setting<List<SoundEvent>> setting) {
         super(theme, "Select Sounds", setting, setting.get(), Registries.SOUND_EVENT);
     }
@@ -25,6 +26,6 @@ public class SoundEventListSettingScreen extends RegistryListSettingScreen<Sound
 
     @Override
     protected String getValueName(SoundEvent value) {
-        return value.id().getPath();
+        return Names.getSoundName(value.getId());
     }
 }

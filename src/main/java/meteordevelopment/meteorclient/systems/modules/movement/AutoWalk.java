@@ -13,7 +13,6 @@ import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Categories;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.misc.input.Input;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
@@ -27,7 +26,7 @@ public class AutoWalk extends Module {
         .description("Walking mode.")
         .defaultValue(Mode.Smart)
         .onChanged(mode1 -> {
-            if (isActive() && Utils.canUpdate()) {
+            if (isActive()) {
                 if (mode1 == Mode.Simple) {
                     PathManagers.get().stop();
                 } else {

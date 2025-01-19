@@ -13,7 +13,7 @@ import meteordevelopment.meteorclient.utils.render.color.Color;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.BookScreen;
 import net.minecraft.client.gui.screen.ingame.ShulkerBoxScreen;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.GameRenderer;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
@@ -25,7 +25,7 @@ import org.lwjgl.glfw.GLFW;
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class PeekScreen extends ShulkerBoxScreen {
-    private final Identifier TEXTURE = Identifier.of("textures/gui/container/shulker_box.png");
+    private final Identifier TEXTURE = new Identifier("textures/gui/container/shulker_box.png");
     private final ItemStack[] contents;
     private final ItemStack storageBlock;
 
@@ -43,7 +43,8 @@ public class PeekScreen extends ShulkerBoxScreen {
             ItemStack itemStack = focusedSlot.getStack();
             if (Utils.hasItems(itemStack) || itemStack.getItem() == Items.ENDER_CHEST) {
                 return Utils.openContainer(focusedSlot.getStack(), contents, false);
-            } else if (itemStack.get(DataComponentTypes.WRITTEN_BOOK_CONTENT) != null || itemStack.get(DataComponentTypes.WRITABLE_BOOK_CONTENT) != null) {
+            }
+            else if (itemStack.get(DataComponentTypes.WRITTEN_BOOK_CONTENT) != null || itemStack.get(DataComponentTypes.WRITABLE_BOOK_CONTENT) != null) {
                 close();
                 mc.setScreen(new BookScreen(BookScreen.Contents.create(itemStack)));
                 return true;
@@ -80,10 +81,11 @@ public class PeekScreen extends ShulkerBoxScreen {
     protected void drawBackground(DrawContext context, float delta, int mouseX, int mouseY) {
         Color color = Utils.getShulkerColor(storageBlock);
 
+        RenderSystem.setShader(GameRenderer::getPositionTexProgram);
         RenderSystem.setShaderColor(color.r / 255f, color.g / 255f, color.b / 255f, color.a / 255f);
         int i = (width - backgroundWidth) / 2;
         int j = (height - backgroundHeight) / 2;
-        context.drawTexture(RenderLayer::getGuiTextured, TEXTURE, i, j, 0f, 0f, backgroundWidth, backgroundHeight, 256, 256);
+        context.drawTexture(TEXTURE, i, j, 0, 0, backgroundWidth, backgroundHeight);
         RenderSystem.setShaderColor(1, 1, 1, 1);
     }
 }

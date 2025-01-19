@@ -25,12 +25,12 @@ public abstract class PlayerInteractEntityC2SPacketMixin implements IPlayerInter
     @Shadow @Final private int entityId;
 
     @Override
-    public PlayerInteractEntityC2SPacket.InteractType meteor$getType() {
+    public PlayerInteractEntityC2SPacket.InteractType getType() {
         return type.getType();
     }
 
     @Override
-    public Entity meteor$getEntity() {
+    public Entity getEntity() {
         return mc.world.getEntityById(entityId);
     }
 

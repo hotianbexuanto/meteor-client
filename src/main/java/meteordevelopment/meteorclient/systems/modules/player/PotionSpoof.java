@@ -50,15 +50,6 @@ public class PotionSpoof extends Module {
         .build()
     );
 
-    private final Setting<Integer> effectDuration = sgGeneral.add(new IntSetting.Builder()
-        .name("effect-duration")
-        .description("How many ticks to spoof the effect for.")
-        .range(1, 32767)
-        .sliderRange(20, 500)
-        .defaultValue(420)
-        .build()
-    );
-
     public PotionSpoof() {
         super(Categories.Player, "potion-spoof", "Spoofs potion statuses for you. SOME effects DO NOT work.");
     }
@@ -82,9 +73,9 @@ public class PotionSpoof extends Module {
             if (mc.player.hasStatusEffect(Registries.STATUS_EFFECT.getEntry(entry.getKey()))) {
                 StatusEffectInstance instance = mc.player.getStatusEffect(Registries.STATUS_EFFECT.getEntry(entry.getKey()));
                 ((StatusEffectInstanceAccessor) instance).setAmplifier(level - 1);
-                if (instance.getDuration() < effectDuration.get()) ((StatusEffectInstanceAccessor) instance).setDuration(effectDuration.get());
+                if (instance.getDuration() < 20) ((StatusEffectInstanceAccessor) instance).setDuration(20);
             } else {
-                mc.player.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(entry.getKey()), effectDuration.get(), level - 1));
+                mc.player.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(entry.getKey()), 20, level - 1));
             }
         }
     }

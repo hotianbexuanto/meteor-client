@@ -14,13 +14,13 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.render.Xray;
 import meteordevelopment.meteorclient.systems.modules.world.InfinityMiner;
-import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
 import net.minecraft.block.*;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.*;
 import net.minecraft.registry.tag.BlockTags;
@@ -195,25 +195,25 @@ public class AutoTool extends Module {
 
         if (silkTouchEnderChest
             && state.getBlock() == Blocks.ENDER_CHEST
-            && !Utils.hasEnchantments(itemStack, Enchantments.SILK_TOUCH)) {
+            && EnchantmentHelper.getLevel(Enchantments.SILK_TOUCH, itemStack) == 0) {
             return -1;
         }
 
         if (fortuneOre
             && isFortunable(state.getBlock())
-            && !Utils.hasEnchantments(itemStack, Enchantments.FORTUNE)) {
+            && EnchantmentHelper.getLevel(Enchantments.FORTUNE, itemStack) == 0) {
             return -1;
         }
 
         double score = 0;
 
         score += itemStack.getMiningSpeedMultiplier(state) * 1000;
-        score += Utils.getEnchantmentLevel(itemStack, Enchantments.UNBREAKING);
-        score += Utils.getEnchantmentLevel(itemStack, Enchantments.EFFICIENCY);
-        score += Utils.getEnchantmentLevel(itemStack, Enchantments.MENDING);
+        score += EnchantmentHelper.getLevel(Enchantments.UNBREAKING, itemStack);
+        score += EnchantmentHelper.getLevel(Enchantments.EFFICIENCY, itemStack);
+        score += EnchantmentHelper.getLevel(Enchantments.MENDING, itemStack);
 
-        if (enchantPreference == EnchantPreference.Fortune) score += Utils.getEnchantmentLevel(itemStack, Enchantments.FORTUNE);
-        if (enchantPreference == EnchantPreference.SilkTouch) score += Utils.getEnchantmentLevel(itemStack, Enchantments.SILK_TOUCH);
+        if (enchantPreference == EnchantPreference.Fortune) score += EnchantmentHelper.getLevel(Enchantments.FORTUNE, itemStack);
+        if (enchantPreference == EnchantPreference.SilkTouch) score += EnchantmentHelper.getLevel(Enchantments.SILK_TOUCH, itemStack);
 
         if (itemStack.getItem() instanceof SwordItem item && (state.getBlock() instanceof BambooBlock || state.getBlock() instanceof BambooShootBlock))
             score += 9000 + (item.getComponents().get(DataComponentTypes.TOOL).getSpeed(state) * 1000);
@@ -222,7 +222,7 @@ public class AutoTool extends Module {
     }
 
     public static boolean isTool(Item item) {
-        return item instanceof MiningToolItem || item instanceof ShearsItem;
+        return item instanceof ToolItem || item instanceof ShearsItem;
     }
     public static boolean isTool(ItemStack itemStack) {
         return isTool(itemStack.getItem());

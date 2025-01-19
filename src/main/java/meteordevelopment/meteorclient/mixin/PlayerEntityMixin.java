@@ -30,6 +30,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
@@ -52,9 +53,9 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     }
 
     @Inject(method = "dropItem(Lnet/minecraft/item/ItemStack;ZZ)Lnet/minecraft/entity/ItemEntity;", at = @At("HEAD"), cancellable = true)
-    private void onDropItem(ItemStack stack, boolean bl, boolean bl2, CallbackInfoReturnable<ItemEntity> cir) {
+    private void onDropItem(ItemStack stack, boolean bl, boolean bl2, CallbackInfoReturnable<ItemEntity> info) {
         if (getWorld().isClient && !stack.isEmpty()) {
-            if (MeteorClient.EVENT_BUS.post(DropItemsEvent.get(stack)).isCancelled()) cir.setReturnValue(null);
+            if (MeteorClient.EVENT_BUS.post(DropItemsEvent.get(stack)).isCancelled()) info.cancel();
         }
     }
 
@@ -77,6 +78,15 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         }
 
         return breakSpeed;
+    }
+
+    @Inject(method = "jump", at = @At("HEAD"), cancellable = true)
+    public void dontJump(CallbackInfo info) {
+        if (!getWorld().isClient) return;
+
+        Anchor module = Modules.get().get(Anchor.class);
+        if (module.isActive() && module.cancelJump) info.cancel();
+        else if (Modules.get().get(Scaffold.class).towering()) info.cancel();
     }
 
     @ModifyReturnValue(method = "getMovementSpeed", at = @At("RETURN"))
@@ -114,11 +124,11 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
     @ModifyReturnValue(method = "getBlockInteractionRange", at = @At("RETURN"))
     private double modifyBlockInteractionRange(double original) {
-        return Math.max(0, original + Modules.get().get(Reach.class).blockReach());
+        return Modules.get().get(Reach.class).blockReach();
     }
 
     @ModifyReturnValue(method = "getEntityInteractionRange", at = @At("RETURN"))
     private double modifyEntityInteractionRange(double original) {
-        return Math.max(0, original + Modules.get().get(Reach.class).entityReach());
+        return Modules.get().get(Reach.class).entityReach();
     }
 }

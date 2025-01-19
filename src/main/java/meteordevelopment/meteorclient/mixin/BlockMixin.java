@@ -15,7 +15,9 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemConvertible;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.world.BlockView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -26,11 +28,11 @@ public abstract class BlockMixin extends AbstractBlock implements ItemConvertibl
     }
 
     @ModifyReturnValue(method = "shouldDrawSide", at = @At("RETURN"))
-    private static boolean onShouldDrawSide(boolean original, BlockState state, BlockState otherState, Direction side) {
+    private static boolean onShouldDrawSide(boolean original, BlockState state, BlockView world, BlockPos pos, Direction side, BlockPos blockPos) {
         Xray xray = Modules.get().get(Xray.class);
 
         if (xray.isActive()) {
-            return xray.modifyDrawSide(state, otherState, side, original);
+            return xray.modifyDrawSide(state, world, pos, side, original);
         }
 
         return original;

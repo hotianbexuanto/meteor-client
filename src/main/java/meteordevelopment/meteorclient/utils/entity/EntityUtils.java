@@ -23,8 +23,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.entity.vehicle.ChestBoatEntity;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.util.math.BlockPos;
@@ -43,7 +41,7 @@ import java.util.function.Predicate;
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class EntityUtils {
-    private static final BlockPos.Mutable testPos = new BlockPos.Mutable();
+    private static BlockPos.Mutable testPos = new BlockPos.Mutable();
 
     private EntityUtils() {
     }
@@ -53,7 +51,7 @@ public class EntityUtils {
     }
 
     public static boolean isRideable(EntityType<?> type) {
-        return type == EntityType.MINECART || BoatEntity.class.isAssignableFrom(type.getBaseClass()) || ChestBoatEntity.class.isAssignableFrom(type.getBaseClass()) || type == EntityType.CAMEL || type == EntityType.DONKEY || type == EntityType.HORSE || type == EntityType.LLAMA || type == EntityType.MULE || type == EntityType.PIG || type == EntityType.SKELETON_HORSE || type == EntityType.STRIDER || type == EntityType.ZOMBIE_HORSE;
+        return type == EntityType.MINECART || type == EntityType.BOAT || type == EntityType.CAMEL || type == EntityType.DONKEY || type == EntityType.HORSE || type == EntityType.LLAMA || type == EntityType.MULE || type == EntityType.PIG || type == EntityType.SKELETON_HORSE || type == EntityType.STRIDER || type == EntityType.ZOMBIE_HORSE;
     }
 
     public static float getTotalHealth(LivingEntity target) {

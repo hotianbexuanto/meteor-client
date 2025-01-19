@@ -15,6 +15,7 @@ import meteordevelopment.meteorclient.utils.entity.ProjectileEntitySimulator;
 import meteordevelopment.meteorclient.utils.misc.Pool;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -98,38 +99,6 @@ public class Trajectories extends Module {
         .build()
     );
 
-    private final Setting<Boolean> renderPositionBox = sgRender.add(new BoolSetting.Builder()
-        .name("render-position-boxes")
-        .description("Renders the actual position the projectile will be at each tick along it's trajectory.")
-        .defaultValue(false)
-        .build()
-    );
-
-    private final Setting<Double> positionBoxSize = sgRender.add(new DoubleSetting.Builder()
-    	.name("position-box-size")
-    	.description("The size of the box drawn at the simulated positions.")
-    	.defaultValue(0.02)
-        .sliderRange(0.01, 0.1)
-        .visible(renderPositionBox::get)
-    	.build()
-    );
-
-    private final Setting<SettingColor> positionSideColor = sgRender.add(new ColorSetting.Builder()
-        .name("position-side-color")
-        .description("The side color.")
-        .defaultValue(new SettingColor(255, 150, 0, 35))
-        .visible(renderPositionBox::get)
-        .build()
-    );
-
-    private final Setting<SettingColor> positionLineColor = sgRender.add(new ColorSetting.Builder()
-        .name("position-line-color")
-        .description("The line color.")
-        .defaultValue(new SettingColor(255, 150, 0))
-        .visible(renderPositionBox::get)
-        .build()
-    );
-
     private final ProjectileEntitySimulator simulator = new ProjectileEntitySimulator();
 
     private final Pool<Vector3d> vec3s = new Pool<>(Vector3d::new);
@@ -142,9 +111,7 @@ public class Trajectories extends Module {
     }
 
     private boolean itemFilter(Item item) {
-        return item instanceof RangedWeaponItem || item instanceof FishingRodItem || item instanceof TridentItem ||
-            item instanceof SnowballItem || item instanceof EggItem || item instanceof EnderPearlItem ||
-            item instanceof ExperienceBottleItem || item instanceof ThrowablePotionItem || item instanceof WindChargeItem;
+        return item instanceof BowItem || item instanceof CrossbowItem || item instanceof FishingRodItem || item instanceof TridentItem || item instanceof SnowballItem || item instanceof EggItem || item instanceof EnderPearlItem || item instanceof ExperienceBottleItem || item instanceof ThrowablePotionItem;
     }
 
     private List<Item> getDefaultItems() {
@@ -167,7 +134,7 @@ public class Trajectories extends Module {
         return path;
     }
 
-    private void calculatePath(PlayerEntity player, float tickDelta) {
+    private void calculatePath(PlayerEntity player, double tickDelta) {
         // Clear paths
         for (Path path : paths) path.clear();
 
@@ -182,7 +149,7 @@ public class Trajectories extends Module {
         if (!simulator.set(player, itemStack, 0, accurate.get(), tickDelta)) return;
         getEmptyPath().calculate();
 
-        if (itemStack.getItem() instanceof CrossbowItem && Utils.hasEnchantment(itemStack, Enchantments.MULTISHOT)) {
+        if (itemStack.getItem() instanceof CrossbowItem && EnchantmentHelper.getLevel(Enchantments.MULTISHOT, itemStack) > 0) {
             if (!simulator.set(player, itemStack, MULTISHOT_OFFSET, accurate.get(), tickDelta)) return; // left multishot arrow
             getEmptyPath().calculate();
 
@@ -201,19 +168,17 @@ public class Trajectories extends Module {
 
     @EventHandler
     private void onRender(Render3DEvent event) {
-        float tickDelta = mc.world.getTickManager().isFrozen() ? 1 : event.tickDelta;
-
         for (PlayerEntity player : mc.world.getPlayers()) {
             if (!otherPlayers.get() && player != mc.player) continue;
 
-            calculatePath(player, tickDelta);
+            calculatePath(player, event.tickDelta);
             for (Path path : paths) path.render(event);
         }
 
         if (firedProjectiles.get()) {
             for (Entity entity : mc.world.getEntities()) {
                 if (entity instanceof ProjectileEntity) {
-                    calculateFiredPath(entity, tickDelta);
+                    calculateFiredPath(entity, event.tickDelta);
                     for (Path path : paths) path.render(event);
                 }
             }
@@ -313,12 +278,7 @@ public class Trajectories extends Module {
         public void render(Render3DEvent event) {
             // Render path
             for (Vector3d point : points) {
-                if (lastPoint != null) {
-                    event.renderer.line(lastPoint.x, lastPoint.y, lastPoint.z, point.x, point.y, point.z, lineColor.get());
-                    if (renderPositionBox.get())
-                        event.renderer.box(point.x - positionBoxSize.get(), point.y - positionBoxSize.get(), point.z - positionBoxSize.get(),
-                            point.x + positionBoxSize.get(), point.y + positionBoxSize.get(), point.z + positionBoxSize.get(), positionSideColor.get(), positionLineColor.get(), shapeMode.get(), 0);
-                }
+                if (lastPoint != null) event.renderer.line(lastPoint.x, lastPoint.y, lastPoint.z, point.x, point.y, point.z, lineColor.get());
                 lastPoint = point;
             }
 

@@ -41,12 +41,6 @@ public interface MinecraftClientAccessor {
     @Accessor("resourceReloadLogger")
     ResourceReloadLogger getResourceReloadLogger();
 
-    @Accessor("attackCooldown")
-    int getAttackCooldown();
-
-    @Accessor("attackCooldown")
-    void setAttackCooldown(int attackCooldown);
-
     @Invoker("doAttack")
     boolean leftClick();
 

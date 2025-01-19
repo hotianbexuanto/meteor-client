@@ -28,12 +28,14 @@
     "meteor-client-baritone.mixins.json",
     "meteor-client-indigo.mixins.json",
     "meteor-client-sodium.mixins.json",
+    "meteor-client-canvas.mixins.json",
     "meteor-client-lithium.mixins.json",
+    "meteor-client-indium.mixins.json",
     "meteor-client-viafabricplus.mixins.json"
   ],
   "accessWidener": "meteor-client.accesswidener",
   "custom": {
-    "meteor-client:build_number": "${build_number}",
+    "meteor-client:devbuild": "${devbuild}",
     "meteor-client:color": "145,61,226",
     "meteor-client:commit": "${commit}",
     "modmenu": {
@@ -44,7 +46,7 @@
   },
   "depends": {
     "java": ">=21",
-    "minecraft": ["${minecraft_version}"],
+    "minecraft": ["1.20.5", "${minecraft_version}"],
     "fabricloader": ">=${loader_version}"
   },
   "breaks": {
@@ -52,7 +54,7 @@
     "feather": "*",
     "origins": "*",
     "wurst": "*",
-    "sodium": "<0.6.5",
+    "sodium": "<0.5.8",
     "morechathistory": "*"
   }
 }

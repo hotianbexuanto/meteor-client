@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(DyedColorComponent.class)
-public abstract class DyedColorComponentMixin {
+public class DyedColorComponentMixin {
     @ModifyExpressionValue(method = "appendTooltip", at = @At(value = "FIELD", target = "Lnet/minecraft/component/type/DyedColorComponent;showInTooltip:Z"))
     private boolean modifyShowInTooltip(boolean original) {
         BetterTooltips bt = Modules.get().get(BetterTooltips.class);

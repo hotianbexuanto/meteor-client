@@ -194,6 +194,11 @@ public class Ambience extends Module {
         public boolean useThickFog(int camX, int camY) {
             return false;
         }
+
+        @Override
+        public float[] getFogColorOverride(float skyAngle, float tickDelta) {
+            return null;
+        }
     }
 
     public SettingColor skyColor() {

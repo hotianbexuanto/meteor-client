@@ -5,6 +5,7 @@
 
 package meteordevelopment.meteorclient.systems.modules;
 
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Lifecycle;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import meteordevelopment.meteorclient.MeteorClient;
@@ -20,7 +21,6 @@ import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.System;
 import meteordevelopment.meteorclient.systems.Systems;
-import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.modules.combat.*;
 import meteordevelopment.meteorclient.systems.modules.misc.*;
 import meteordevelopment.meteorclient.systems.modules.misc.swarm.Swarm;
@@ -35,6 +35,7 @@ import meteordevelopment.meteorclient.systems.modules.world.Timer;
 import meteordevelopment.meteorclient.systems.modules.world.*;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
+import meteordevelopment.meteorclient.utils.misc.MeteorIdentifier;
 import meteordevelopment.meteorclient.utils.misc.ValueComparableMap;
 import meteordevelopment.meteorclient.utils.misc.input.Input;
 import meteordevelopment.meteorclient.utils.misc.input.KeyAction;
@@ -47,6 +48,8 @@ import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.SimpleRegistry;
 import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.entry.RegistryEntryList;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.random.Random;
 import org.jetbrains.annotations.NotNull;
@@ -119,7 +122,6 @@ public class Modules extends System<Modules> {
         return CATEGORIES;
     }
 
-    @Deprecated(forRemoval = true)
     public static Category getCategoryByHash(int hash) {
         for (Category category : CATEGORIES) {
             if (category.hashCode() == hash) return category;
@@ -173,12 +175,6 @@ public class Modules extends System<Modules> {
 
         for (Module module : this.moduleInstances.values()) {
             int score = Utils.searchLevenshteinDefault(module.title, text, false);
-            if (Config.get().moduleAliases.get()) {
-                for (String alias : module.aliases) {
-                    int aliasScore = Utils.searchLevenshteinDefault(alias, text, false);
-                    if (aliasScore < score) score = aliasScore;
-                }
-            }
             modules.put(module, modules.getOrDefault(module, 0) + score);
         }
 
@@ -251,7 +247,7 @@ public class Modules extends System<Modules> {
         if (!isBinding()) return false;
 
         if (awaitingKeyRelease) {
-            if (!isKey || (value != GLFW.GLFW_KEY_ENTER && value != GLFW.GLFW_KEY_KP_ENTER)) return false;
+            if (!isKey || value != GLFW.GLFW_KEY_ENTER) return false;
 
             awaitingKeyRelease = false;
             return false;
@@ -289,7 +285,7 @@ public class Modules extends System<Modules> {
         if (mc.currentScreen != null || Input.isKeyPressed(GLFW.GLFW_KEY_F3)) return;
 
         for (Module module : moduleInstances.values()) {
-            if (module.keybind.matches(isKey, value, modifiers) && (isPress || (module.toggleOnBindRelease && module.isActive()))) {
+            if (module.keybind.matches(isKey, value, modifiers) && (isPress || module.toggleOnBindRelease)) {
                 module.toggle();
                 module.sendToggledMsg();
             }
@@ -435,13 +431,11 @@ public class Modules extends System<Modules> {
     private void initPlayer() {
         add(new AntiHunger());
         add(new AutoEat());
-        add(new AutoClicker());
         add(new AutoFish());
         add(new AutoGap());
         add(new AutoMend());
         add(new AutoReplenish());
         add(new AutoTool());
-        add(new BreakDelay());
         add(new ChestSwap());
         add(new EXPThrower());
         add(new FakePlayer());
@@ -450,11 +444,12 @@ public class Modules extends System<Modules> {
         add(new InstantRebreak());
         add(new LiquidInteract());
         add(new MiddleClickExtra());
-        add(new Multitask());
+        add(new BreakDelay());
         add(new NoInteract());
         add(new NoMiningTrace());
         add(new NoRotate());
         add(new OffhandCrash());
+        add(new PacketMine());
         add(new Portals());
         add(new PotionSaver());
         add(new PotionSpoof());
@@ -529,6 +524,7 @@ public class Modules extends System<Modules> {
         add(new Tracers());
         add(new Trail());
         add(new Trajectories());
+        add(new UnfocusedCPU());
         add(new VoidESP());
         add(new WallHack());
         add(new WaypointsModule());
@@ -543,6 +539,7 @@ public class Modules extends System<Modules> {
     private void initWorld() {
         add(new AirPlace());
         add(new Ambience());
+        add(new Collisions());
         add(new AutoBreed());
         add(new AutoBrewer());
         add(new AutoMount());
@@ -551,20 +548,18 @@ public class Modules extends System<Modules> {
         add(new AutoSign());
         add(new AutoSmelter());
         add(new BuildHeight());
-        add(new Collisions());
         add(new EChestFarmer());
         add(new EndermanLook());
         add(new Flamethrower());
-        add(new HighwayBuilder());
         add(new LiquidFiller());
         add(new MountBypass());
         add(new NoGhostBlocks());
         add(new Nuker());
-        add(new PacketMine());
         add(new StashFinder());
         add(new SpawnProofer());
         add(new Timer());
         add(new VeinMiner());
+        add(new HighwayBuilder());
 
         if (BaritoneUtils.IS_AVAILABLE) {
             add(new Excavator());
@@ -575,6 +570,7 @@ public class Modules extends System<Modules> {
     private void initMisc() {
         add(new Swarm());
         add(new AntiPacketKick());
+        add(new AutoClicker());
         add(new AutoLog());
         add(new AutoReconnect());
         add(new AutoRespawn());
@@ -582,20 +578,20 @@ public class Modules extends System<Modules> {
         add(new BetterChat());
         add(new BookBot());
         add(new DiscordPresence());
-        add(new InventoryTweaks());
         add(new MessageAura());
         add(new NameProtect());
         add(new Notebot());
         add(new Notifier());
         add(new PacketCanceller());
-        add(new ServerSpoof());
         add(new SoundBlocker());
         add(new Spam());
+        add(new ServerSpoof());
+        add(new InventoryTweaks());
     }
 
     public static class ModuleRegistry extends SimpleRegistry<Module> {
         public ModuleRegistry() {
-            super(RegistryKey.ofRegistry(MeteorClient.identifier("modules")), Lifecycle.stable());
+            super(RegistryKey.ofRegistry(new MeteorIdentifier("modules")), Lifecycle.stable());
         }
 
         @Override
@@ -689,9 +685,40 @@ public class Modules extends System<Modules> {
         }
 
         @Override
+        public Optional<RegistryEntry.Reference<Module>> getEntry(RegistryKey<Module> key) {
+            return Optional.empty();
+        }
+
+        @Override
         public Stream<RegistryEntry.Reference<Module>> streamEntries() {
             return null;
         }
+
+        @Override
+        public Optional<RegistryEntryList.Named<Module>> getEntryList(TagKey<Module> tag) {
+            return Optional.empty();
+        }
+
+        @Override
+        public RegistryEntryList.Named<Module> getOrCreateEntryList(TagKey<Module> tag) {
+            return null;
+        }
+
+        @Override
+        public Stream<Pair<TagKey<Module>, RegistryEntryList.Named<Module>>> streamTagsAndEntries() {
+            return null;
+        }
+
+        @Override
+        public Stream<TagKey<Module>> streamTags() {
+            return null;
+        }
+
+        @Override
+        public void clearTags() {}
+
+        @Override
+        public void populateTags(Map<TagKey<Module>, List<RegistryEntry<Module>>> tagEntries) {}
 
         private static class ModuleIterator implements Iterator<Module> {
             private final Iterator<Module> iterator = Modules.get().getAll().iterator();

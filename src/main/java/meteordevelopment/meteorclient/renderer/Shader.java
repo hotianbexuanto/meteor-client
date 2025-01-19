@@ -9,6 +9,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import meteordevelopment.meteorclient.MeteorClient;
+import meteordevelopment.meteorclient.utils.misc.MeteorIdentifier;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import org.apache.commons.io.IOUtils;
 import org.joml.Matrix4f;
@@ -31,7 +32,7 @@ public class Shader {
 
         String vertError = GL.compileShader(vert);
         if (vertError != null) {
-            MeteorClient.LOG.error("Failed to compile vertex shader ({}): {}", vertPath, vertError);
+            MeteorClient.LOG.error("Failed to compile vertex shader (" + vertPath + "): " + vertError);
             throw new RuntimeException("Failed to compile vertex shader (" + vertPath + "): " + vertError);
         }
 
@@ -40,7 +41,7 @@ public class Shader {
 
         String fragError = GL.compileShader(frag);
         if (fragError != null) {
-            MeteorClient.LOG.error("Failed to compile fragment shader ({}): {}", fragPath, fragError);
+            MeteorClient.LOG.error("Failed to compile fragment shader (" + fragPath + "): " + fragError);
             throw new RuntimeException("Failed to compile fragment shader (" + fragPath + "): " + fragError);
         }
 
@@ -48,7 +49,7 @@ public class Shader {
 
         String programError = GL.linkProgram(id, vert, frag);
         if (programError != null) {
-            MeteorClient.LOG.error("Failed to link program: {}", programError);
+            MeteorClient.LOG.error("Failed to link program: " + programError);
             throw new RuntimeException("Failed to link program: " + programError);
         }
 
@@ -58,7 +59,7 @@ public class Shader {
 
     private String read(String path) {
         try {
-            return IOUtils.toString(mc.getResourceManager().getResource(MeteorClient.identifier("shaders/" + path)).get().getInputStream(), StandardCharsets.UTF_8);
+            return IOUtils.toString(mc.getResourceManager().getResource(new MeteorIdentifier("shaders/" + path)).get().getInputStream(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new IllegalStateException("Could not read shader '" + path + "'", e);
         }

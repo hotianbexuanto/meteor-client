@@ -8,7 +8,7 @@ out
 run
 bin
 logs
-.github/builds/node_modules
+.github/devbuilds/node_modules
 *.iws
 *.ipr
 *.iml
