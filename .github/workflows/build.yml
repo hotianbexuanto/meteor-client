@@ -22,36 +22,44 @@ jobs:
 
       - run: chmod +x gradlew
 
-      - name: Get current dev build number
-        id: dev-build
+      - name: Get build timestamp
+        id: timestamp
         run: |
-          echo "number=$(date +%s)" >> $GITHUB_OUTPUT
+          echo "BUILD_TIME=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
 
       - name: Build
-        run: ./gradlew build -Pcommit=${{ github.sha }} -Pdevbuild=${{ steps.dev-build.outputs.number }}
+        run: ./gradlew build -Pcommit=${{ github.sha }} -Pdevbuild=${{ env.BUILD_TIME }}
 
       - name: List Build Directory
         run: |
           echo "Listing build directory contents:"
           ls -R build/libs/
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: dev-${{ steps.dev-build.outputs.number }}
-          release_name: Development Build ${{ steps.dev-build.outputs.number }}
-          draft: false
-          prerelease: true
+      - name: Create tag
+        id: create_tag
+        run: |
+          TAG_NAME="dev-${BUILD_TIME}"
+          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
+          
+          # 检查标签是否存在
+          TAG_EXISTS=$(git tag -l $TAG_NAME)
+          if [ "$TAG_EXISTS" != "" ]; then
+            SUFFIX=1
+            NEW_TAG_NAME="${TAG_NAME}-${SUFFIX}"
+            echo "TAG_NAME=${NEW_TAG_NAME}" >> $GITHUB_ENV
+            git tag $NEW_TAG_NAME
+            git push origin $NEW_TAG_NAME
+          else
+            git tag $TAG_NAME
+            git push origin $TAG_NAME
+          fi
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+      - name: Upload Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: "Development Build ${{ env.BUILD_TIME }}"
+          files: build/libs/meteor-client-*.jar
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/libs/meteor-client-*.jar
-          asset_name: meteor-client-${{ steps.dev-build.outputs.number }}.jar
-          asset_content_type: application/java-archive
