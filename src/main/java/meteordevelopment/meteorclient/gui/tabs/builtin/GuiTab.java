@@ -11,7 +11,6 @@ import meteordevelopment.meteorclient.gui.tabs.Tab;
 import meteordevelopment.meteorclient.gui.tabs.TabScreen;
 import meteordevelopment.meteorclient.gui.tabs.WindowTabScreen;
 import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
-import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.gui.widgets.input.WDropdown;
 import meteordevelopment.meteorclient.utils.misc.NbtUtils;
 import net.minecraft.client.gui.screen.Screen;
@@ -53,9 +52,6 @@ public class GuiTab extends Tab {
                 mc.setScreen(null);
                 tab.openScreen(GuiThemes.get());
             };
-
-            WButton reset = add(theme.button("Reset GUI Layout")).widget();
-            reset.action = () -> theme.clearWindowConfigs();
 
             add(theme.settings(theme.settings)).expandX();
         }

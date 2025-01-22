@@ -5,186 +5,139 @@
 
 package meteordevelopment.meteorclient.commands.commands;
 
+import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import com.mojang.serialization.DataResult;
 import meteordevelopment.meteorclient.commands.Command;
-import meteordevelopment.meteorclient.commands.arguments.ComponentMapArgumentType;
-import meteordevelopment.meteorclient.utils.misc.text.MeteorClickEvent;
+import meteordevelopment.meteorclient.commands.arguments.CompoundNbtTagArgumentType;
+import meteordevelopment.meteorclient.systems.config.Config;
 import net.minecraft.command.CommandSource;
-import net.minecraft.command.DataCommandObject;
-import net.minecraft.command.EntityDataObject;
 import net.minecraft.command.argument.NbtPathArgumentType;
-import net.minecraft.command.argument.RegistryKeyArgumentType;
-import net.minecraft.component.*;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
 import net.minecraft.network.packet.c2s.play.CreativeInventoryActionC2SPacket;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.text.*;
+import net.minecraft.text.ClickEvent;
+import net.minecraft.text.HoverEvent;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Unit;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class NbtCommand extends Command {
-    private static final DynamicCommandExceptionType MALFORMED_ITEM_EXCEPTION = new DynamicCommandExceptionType(
-        error -> Text.stringifiedTranslatable("arguments.item.malformed", error)
-    );
-    private final Text copyButton = Text.literal("NBT").setStyle(Style.EMPTY
-        .withFormatting(Formatting.UNDERLINE)
-        .withClickEvent(new MeteorClickEvent(
-            ClickEvent.Action.RUN_COMMAND,
-            this.toString("copy")
-        ))
-        .withHoverEvent(new HoverEvent(
-            HoverEvent.Action.SHOW_TEXT,
-            Text.literal("Copy the NBT data to your clipboard.")
-        )));
-
     public NbtCommand() {
         super("nbt", "Modifies NBT data for an item, example: .nbt add {display:{Name:'{\"text\":\"$cRed Name\"}'}}");
     }
 
     @Override
     public void build(LiteralArgumentBuilder<CommandSource> builder) {
-        builder.then(literal("add").then(argument("component", ComponentMapArgumentType.componentMap(REGISTRY_ACCESS)).executes(ctx -> {
+        builder.then(literal("add").then(argument("nbt", CompoundNbtTagArgumentType.create()).executes(s -> {
             ItemStack stack = mc.player.getInventory().getMainHandStack();
 
             if (validBasic(stack)) {
-                ComponentMap itemComponents = stack.getComponents();
-                ComponentMap newComponents = ComponentMapArgumentType.getComponentMap(ctx, "component");
+                NbtCompound tag = CompoundNbtTagArgumentType.get(s);
+                NbtCompound source = stack.getOrCreateNbt();
 
-                ComponentMap testComponents = ComponentMap.of(itemComponents, newComponents);
-                DataResult<Unit> dataResult = ItemStack.validateComponents(testComponents);
-                dataResult.getOrThrow(MALFORMED_ITEM_EXCEPTION::create);
+                if (tag != null) {
+                    source.copyFrom(tag);
+                    setStack(stack);
+                } else {
+                    error("Some of the NBT data could not be found, try using: " + Config.get().prefix.get() + "nbt set {nbt}");
+                }
+            }
 
-                stack.applyComponentsFrom(testComponents);
+            return SINGLE_SUCCESS;
+        })));
 
+        builder.then(literal("set").then(argument("nbt", CompoundNbtTagArgumentType.create()).executes(context -> {
+            ItemStack stack = mc.player.getInventory().getMainHandStack();
+
+            if (validBasic(stack)) {
+                stack.setNbt(CompoundNbtTagArgumentType.get(context));
                 setStack(stack);
             }
 
             return SINGLE_SUCCESS;
         })));
 
-        builder.then(literal("set").then(argument("component", ComponentMapArgumentType.componentMap(REGISTRY_ACCESS)).executes(ctx -> {
+        builder.then(literal("remove").then(argument("nbt_path", NbtPathArgumentType.nbtPath()).executes(context -> {
             ItemStack stack = mc.player.getInventory().getMainHandStack();
 
             if (validBasic(stack)) {
-                ComponentMap components = ComponentMapArgumentType.getComponentMap(ctx, "component");
-                ComponentMapImpl stackComponents = (ComponentMapImpl) stack.getComponents();
-
-                DataResult<Unit> dataResult = ItemStack.validateComponents(components);
-                dataResult.getOrThrow(MALFORMED_ITEM_EXCEPTION::create);
-
-                ComponentChanges.Builder changesBuilder = ComponentChanges.builder();
-                Set<DataComponentType<?>> types = stackComponents.getTypes();
-
-                //set changes
-                for (Component<?> entry : components) {
-                    changesBuilder.add(entry);
-                    types.remove(entry.type());
-                }
-
-                //remove the rest
-                for (DataComponentType<?> type : types) {
-                    changesBuilder.remove(type);
-                }
-
-                stackComponents.applyChanges(changesBuilder.build());
-
-                setStack(stack);
+                NbtPathArgumentType.NbtPath path = context.getArgument("nbt_path", NbtPathArgumentType.NbtPath.class);
+                path.remove(stack.getNbt());
             }
 
             return SINGLE_SUCCESS;
-        })));
-
-        builder.then(literal("remove").then(argument("component", RegistryKeyArgumentType.registryKey(RegistryKeys.DATA_COMPONENT_TYPE)).executes(ctx -> {
-            ItemStack stack = mc.player.getInventory().getMainHandStack();
-
-            if (validBasic(stack)) {
-                @SuppressWarnings("unchecked")
-                RegistryKey<DataComponentType<?>> componentTypeKey = (RegistryKey<DataComponentType<?>>) ctx.getArgument("component", RegistryKey.class);
-
-                DataComponentType<?> componentType = Registries.DATA_COMPONENT_TYPE.get(componentTypeKey);
-
-                ComponentMapImpl components = (ComponentMapImpl) stack.getComponents();
-                components.applyChanges(ComponentChanges.builder().remove(componentType).build());
-
-                setStack(stack);
-            }
-
-            return SINGLE_SUCCESS;
-        }).suggests((ctx, suggestionsBuilder) -> {
-            ItemStack stack = mc.player.getInventory().getMainHandStack();
-            if (stack != ItemStack.EMPTY) {
-                ComponentMap components = stack.getComponents();
-                String remaining = suggestionsBuilder.getRemaining().toLowerCase(Locale.ROOT);
-
-                CommandSource.forEachMatching(components.getTypes().stream().map(Registries.DATA_COMPONENT_TYPE::getEntry).toList(), remaining, entry -> {
-                    if (entry.getKey().isPresent()) return entry.getKey().get().getValue();
-                    return null;
-                }, entry -> {
-                    DataComponentType<?> dataComponentType = entry.value();
-                    if (dataComponentType.getCodec() != null) {
-                        if (entry.getKey().isPresent()) {
-                            suggestionsBuilder.suggest(entry.getKey().get().getValue().toString());
-                        }
-                    }
-                });
-            }
-
-            return suggestionsBuilder.buildFuture();
         })));
 
         builder.then(literal("get").executes(context -> {
-            DataCommandObject dataCommandObject = new EntityDataObject(mc.player);
-            NbtPathArgumentType.NbtPath handPath = NbtPathArgumentType.NbtPath.parse("SelectedItem");
+            ItemStack stack = mc.player.getInventory().getMainHandStack();
 
-            MutableText text = Text.empty().append(copyButton);
+            if (stack == null) {
+                error("You must hold an item in your main hand.");
+            } else {
+                NbtCompound tag = stack.getNbt();
 
-            try {
-                List<NbtElement> nbtElement = handPath.get(dataCommandObject.getNbt());
-                if (!nbtElement.isEmpty()) {
-                    text.append(" ").append(NbtHelper.toPrettyPrintedText(nbtElement.getFirst()));
-                }
-            } catch (CommandSyntaxException e) {
-                text.append("{}");
+                MutableText copyButton = Text.literal("NBT");
+                copyButton.setStyle(copyButton.getStyle()
+                        .withFormatting(Formatting.UNDERLINE)
+                        .withClickEvent(new ClickEvent(
+                                ClickEvent.Action.RUN_COMMAND,
+                                this.toString("copy")
+                        ))
+                        .withHoverEvent(new HoverEvent(
+                                HoverEvent.Action.SHOW_TEXT,
+                                Text.literal("Copy the NBT data to your clipboard.")
+                        )));
+
+                MutableText text = Text.literal("");
+                text.append(copyButton);
+
+                if (tag == null) text.append("{}");
+                else text.append(" ").append(NbtHelper.toPrettyPrintedText(tag));
+
+                info(text);
             }
-
-            info(text);
 
             return SINGLE_SUCCESS;
         }));
 
         builder.then(literal("copy").executes(context -> {
-            DataCommandObject dataCommandObject = new EntityDataObject(mc.player);
-            NbtPathArgumentType.NbtPath handPath = NbtPathArgumentType.NbtPath.parse("SelectedItem");
+            ItemStack stack = mc.player.getInventory().getMainHandStack();
 
-            MutableText text = Text.empty().append(copyButton);
-            String nbt = "{}";
+            if (stack == null) {
+                error("You must hold an item in your main hand.");
+            } else {
+                NbtCompound tag = stack.getOrCreateNbt();
+                mc.keyboard.setClipboard(tag.toString());
+                MutableText nbt = Text.literal("NBT");
+                nbt.setStyle(nbt.getStyle()
+                        .withFormatting(Formatting.UNDERLINE)
+                        .withHoverEvent(new HoverEvent(
+                                HoverEvent.Action.SHOW_TEXT,
+                                NbtHelper.toPrettyPrintedText(tag)
+                        )));
 
-            try {
-                List<NbtElement> nbtElement = handPath.get(dataCommandObject.getNbt());
-                if (!nbtElement.isEmpty()) {
-                    text.append(" ").append(NbtHelper.toPrettyPrintedText(nbtElement.getFirst()));
-                    nbt = nbtElement.getFirst().toString();
-                }
-            } catch (CommandSyntaxException e) {
-                text.append("{}");
+                MutableText text = Text.literal("");
+                text.append(nbt);
+                text.append(Text.literal(" data copied!"));
+
+                info(text);
             }
 
-            mc.keyboard.setClipboard(nbt);
+            return SINGLE_SUCCESS;
+        }));
 
-            text.append(" data copied!");
-            info(text);
+        builder.then(literal("paste").executes(context -> {
+            ItemStack stack = mc.player.getInventory().getMainHandStack();
+
+            if (validBasic(stack)) {
+                stack.setNbt(new CompoundNbtTagArgumentType().parse(new StringReader(mc.keyboard.getClipboard())));
+                setStack(stack);
+            }
 
             return SINGLE_SUCCESS;
         }));
@@ -196,7 +149,7 @@ public class NbtCommand extends Command {
                 int count = IntegerArgumentType.getInteger(context, "count");
                 stack.setCount(count);
                 setStack(stack);
-                info("Set mainhand stack count to %s.", count);
+                info("Set mainhand stack count to %s.",count);
             }
 
             return SINGLE_SUCCESS;
@@ -213,7 +166,7 @@ public class NbtCommand extends Command {
             return false;
         }
 
-        if (stack == ItemStack.EMPTY) {
+        if (stack == null) {
             error("You must hold an item in your main hand.");
             return false;
         }

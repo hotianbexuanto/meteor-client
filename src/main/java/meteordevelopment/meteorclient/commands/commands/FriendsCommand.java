@@ -16,6 +16,8 @@ import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import net.minecraft.command.CommandSource;
 import net.minecraft.util.Formatting;
 
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+
 public class FriendsCommand extends Command {
     public FriendsCommand() {
         super("friends", "Manages friends.");

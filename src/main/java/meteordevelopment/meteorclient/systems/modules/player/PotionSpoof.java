@@ -5,7 +5,7 @@
 
 package meteordevelopment.meteorclient.systems.modules.player;
 
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.mixin.StatusEffectInstanceAccessor;
 import meteordevelopment.meteorclient.settings.*;
@@ -15,7 +15,6 @@ import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.registry.Registries;
 
 import java.util.List;
 
@@ -24,7 +23,7 @@ import static net.minecraft.entity.effect.StatusEffects.*;
 public class PotionSpoof extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    private final Setting<Reference2IntMap<StatusEffect>> spoofPotions = sgGeneral.add(new StatusEffectAmplifierMapSetting.Builder()
+    private final Setting<Object2IntMap<StatusEffect>> spoofPotions = sgGeneral.add(new StatusEffectAmplifierMapSetting.Builder()
         .name("spoofed-potions")
         .description("Potions to add.")
         .defaultValue(Utils.createStatusEffectMap())
@@ -42,11 +41,18 @@ public class PotionSpoof extends Module {
         .name("blocked-potions")
         .description("Potions to block.")
         .defaultValue(
-            LEVITATION.value(),
-            JUMP_BOOST.value(),
-            SLOW_FALLING.value(),
-            DOLPHINS_GRACE.value()
+            LEVITATION,
+            JUMP_BOOST,
+            SLOW_FALLING,
+            DOLPHINS_GRACE
         )
+        .build()
+    );
+
+    public final Setting<Boolean> applyGravity = sgGeneral.add(new BoolSetting.Builder()
+        .name("gravity")
+        .description("Applies gravity when levitating.")
+        .defaultValue(false)
         .build()
     );
 
@@ -58,24 +64,24 @@ public class PotionSpoof extends Module {
     public void onDeactivate() {
         if (!clearEffects.get() || !Utils.canUpdate()) return;
 
-        for (Reference2IntMap.Entry<StatusEffect> entry : spoofPotions.get().reference2IntEntrySet()) {
-            if (entry.getIntValue() <= 0) continue;
-            if (mc.player.hasStatusEffect(Registries.STATUS_EFFECT.getEntry(entry.getKey()))) mc.player.removeStatusEffect(Registries.STATUS_EFFECT.getEntry(entry.getKey()));
+        for (StatusEffect effect : spoofPotions.get().keySet()) {
+            if (spoofPotions.get().getInt(effect) <= 0) continue;
+            if (mc.player.hasStatusEffect(effect)) mc.player.removeStatusEffect(effect);
         }
     }
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
-        for (Reference2IntMap.Entry<StatusEffect> entry : spoofPotions.get().reference2IntEntrySet()) {
-            int level = entry.getIntValue();
+        for (StatusEffect statusEffect : spoofPotions.get().keySet()) {
+            int level = spoofPotions.get().getInt(statusEffect);
             if (level <= 0) continue;
 
-            if (mc.player.hasStatusEffect(Registries.STATUS_EFFECT.getEntry(entry.getKey()))) {
-                StatusEffectInstance instance = mc.player.getStatusEffect(Registries.STATUS_EFFECT.getEntry(entry.getKey()));
+            if (mc.player.hasStatusEffect(statusEffect)) {
+                StatusEffectInstance instance = mc.player.getStatusEffect(statusEffect);
                 ((StatusEffectInstanceAccessor) instance).setAmplifier(level - 1);
                 if (instance.getDuration() < 20) ((StatusEffectInstanceAccessor) instance).setDuration(20);
             } else {
-                mc.player.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(entry.getKey()), 20, level - 1));
+                mc.player.addStatusEffect(new StatusEffectInstance(statusEffect, 20, level - 1));
             }
         }
     }

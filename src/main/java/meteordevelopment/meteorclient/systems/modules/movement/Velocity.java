@@ -126,13 +126,6 @@ public class Velocity extends Module {
         .build()
     );
 
-    public final Setting<Boolean> fishing = sgGeneral.add(new BoolSetting.Builder()
-        .name("fishing")
-        .description("Prevents you from being pulled by fishing rods.")
-        .defaultValue(false)
-        .build()
-    );
-
     public Velocity() {
         super(Categories.Movement, "velocity", "Prevents you from being moved by external forces.");
     }
@@ -150,7 +143,7 @@ public class Velocity extends Module {
     @EventHandler
     private void onPacketReceive(PacketEvent.Receive event) {
         if (knockback.get() && event.packet instanceof EntityVelocityUpdateS2CPacket packet
-            && packet.getId() == mc.player.getId()) {
+            && ((EntityVelocityUpdateS2CPacket) event.packet).getId() == mc.player.getId()) {
             double velX = (packet.getVelocityX() / 8000d - mc.player.getVelocity().x) * knockbackHorizontal.get();
             double velY = (packet.getVelocityY() / 8000d - mc.player.getVelocity().y) * knockbackVertical.get();
             double velZ = (packet.getVelocityZ() / 8000d - mc.player.getVelocity().z) * knockbackHorizontal.get();

@@ -19,6 +19,8 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.Utils;
 import net.minecraft.command.CommandSource;
 
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+
 public class SettingCommand extends Command {
     public SettingCommand() {
         super("settings", "Allows you to view and change module settings.", "s");
