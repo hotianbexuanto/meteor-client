@@ -24,7 +24,6 @@ import meteordevelopment.meteorclient.systems.modules.render.Freecam;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ElytraItem;
 import net.minecraft.item.Items;
@@ -265,8 +264,8 @@ public class ElytraFly extends Module {
         .name("replace-durability")
         .description("The durability threshold your elytra will be replaced at.")
         .defaultValue(2)
-        .range(1, Items.ELYTRA.getComponents().get(DataComponentTypes.MAX_DAMAGE) - 1)
-        .sliderRange(1, Items.ELYTRA.getComponents().get(DataComponentTypes.MAX_DAMAGE) - 1)
+        .range(1, Items.ELYTRA.getMaxDamage() - 1)
+        .sliderRange(1, Items.ELYTRA.getMaxDamage() - 1)
         .visible(replace::get)
         .build()
     );
@@ -343,7 +342,7 @@ public class ElytraFly extends Module {
     public void onActivate() {
         currentMode.onActivate();
         if ((chestSwap.get() == ChestSwapMode.Always || chestSwap.get() == ChestSwapMode.WaitForGround)
-            && mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem() != Items.ELYTRA && isActive()) {
+            && mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem() != Items.ELYTRA) {
             Modules.get().get(ChestSwap.class).swap();
         }
     }

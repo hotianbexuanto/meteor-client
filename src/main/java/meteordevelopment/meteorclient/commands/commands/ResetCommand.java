@@ -17,6 +17,8 @@ import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import net.minecraft.command.CommandSource;
 
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+
 public class ResetCommand extends Command {
 
     public ResetCommand() {
@@ -45,13 +47,13 @@ public class ResetCommand extends Command {
                 .then(argument("module", ModuleArgumentType.create()).executes(context -> {
                     Module module = context.getArgument("module", Module.class);
 
-                    module.keybind.reset();
+                    module.keybind.set(true, -1);
                     module.info("Reset bind.");
 
                     return SINGLE_SUCCESS;
                 }))
                 .then(literal("all").executes(context -> {
-                    Modules.get().getAll().forEach(module -> module.keybind.reset());
+                    Modules.get().getAll().forEach(module -> module.keybind.set(true, -1));
                     ChatUtils.infoPrefix("Modules", "Reset all binds.");
                     return SINGLE_SUCCESS;
                 }))
