@@ -20,7 +20,6 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityGroup;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -44,6 +43,9 @@ import static meteordevelopment.meteorclient.MeteorClient.mc;
 public class EntityUtils {
     private static BlockPos.Mutable testPos = new BlockPos.Mutable();
 
+    private EntityUtils() {
+    }
+
     public static boolean isAttackable(EntityType<?> type) {
         return type != EntityType.AREA_EFFECT_CLOUD && type != EntityType.ARROW && type != EntityType.FALLING_BLOCK && type != EntityType.FIREWORK_ROCKET && type != EntityType.ITEM && type != EntityType.LLAMA_SPIT && type != EntityType.SPECTRAL_ARROW && type != EntityType.ENDER_PEARL && type != EntityType.EXPERIENCE_BOTTLE && type != EntityType.POTION && type != EntityType.TRIDENT && type != EntityType.LIGHTNING_BOLT && type != EntityType.FISHING_BOBBER && type != EntityType.EXPERIENCE_ORB && type != EntityType.EGG;
     }
@@ -52,7 +54,7 @@ public class EntityUtils {
         return type == EntityType.MINECART || type == EntityType.BOAT || type == EntityType.CAMEL || type == EntityType.DONKEY || type == EntityType.HORSE || type == EntityType.LLAMA || type == EntityType.MULE || type == EntityType.PIG || type == EntityType.SKELETON_HORSE || type == EntityType.STRIDER || type == EntityType.ZOMBIE_HORSE;
     }
 
-    public static float getTotalHealth(PlayerEntity target) {
+    public static float getTotalHealth(LivingEntity target) {
         return target.getHealth() + target.getAbsorptionAmount();
     }
 
@@ -116,7 +118,7 @@ public class EntityUtils {
     public static BlockPos getCityBlock(PlayerEntity player) {
         if (player == null) return null;
 
-        double bestDistance = 6;
+        double bestDistanceSquared = 6 * 6;
         Direction bestDirection = null;
 
         for (Direction direction : Direction.HORIZONTAL) {
@@ -124,11 +126,11 @@ public class EntityUtils {
 
             Block block = mc.world.getBlockState(testPos).getBlock();
             if (block != Blocks.OBSIDIAN && block != Blocks.NETHERITE_BLOCK && block != Blocks.CRYING_OBSIDIAN
-            && block != Blocks.RESPAWN_ANCHOR && block != Blocks.ANCIENT_DEBRIS) continue;
+                && block != Blocks.RESPAWN_ANCHOR && block != Blocks.ANCIENT_DEBRIS) continue;
 
-            double testDistance = PlayerUtils.distanceTo(testPos);
-            if (testDistance < bestDistance) {
-                bestDistance = testDistance;
+            double testDistanceSquared = PlayerUtils.squaredDistanceTo(testPos);
+            if (testDistanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = testDistanceSquared;
                 bestDirection = direction;
             }
         }
@@ -139,7 +141,7 @@ public class EntityUtils {
 
     public static String getName(Entity entity) {
         if (entity == null) return null;
-        if (entity instanceof PlayerEntity) return entity.getEntityName();
+        if (entity instanceof PlayerEntity) return entity.getName().getString();
         return entity.getType().getName().getString();
     }
 
@@ -159,8 +161,7 @@ public class EntityUtils {
         if (percent < 0.5) {
             r = 255;
             g = (int) (255 * percent / 0.5);  // Closer to 0.5, closer to yellow (255,255,0)
-        }
-        else {
+        } else {
             g = 255;
             r = 255 - (int) (255 * (percent - 0.5) / 0.5); // Closer to 1.0, closer to green (0,255,0)
         }
@@ -220,8 +221,7 @@ public class EntityUtils {
         return found.get();
     }
 
-    public static EntityGroup getGroup(Entity entity) {
-        if (entity instanceof LivingEntity livingEntity) return livingEntity.getGroup();
-        else return EntityGroup.DEFAULT;
+    public static EntityType<?> getGroup(Entity entity) {
+        return entity.getType();
     }
 }

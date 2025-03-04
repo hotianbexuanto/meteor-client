@@ -5,9 +5,9 @@
 
 package meteordevelopment.meteorclient.systems.modules;
 
-import com.google.common.collect.Ordering;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Lifecycle;
+import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.game.GameJoinedEvent;
 import meteordevelopment.meteorclient.events.game.GameLeftEvent;
@@ -16,10 +16,12 @@ import meteordevelopment.meteorclient.events.meteor.ActiveModulesChangedEvent;
 import meteordevelopment.meteorclient.events.meteor.KeyEvent;
 import meteordevelopment.meteorclient.events.meteor.ModuleBindChangedEvent;
 import meteordevelopment.meteorclient.events.meteor.MouseButtonEvent;
+import meteordevelopment.meteorclient.pathing.BaritoneUtils;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.System;
 import meteordevelopment.meteorclient.systems.Systems;
+import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.modules.combat.*;
 import meteordevelopment.meteorclient.systems.modules.misc.*;
 import meteordevelopment.meteorclient.systems.modules.misc.swarm.Swarm;
@@ -34,7 +36,6 @@ import meteordevelopment.meteorclient.systems.modules.world.Timer;
 import meteordevelopment.meteorclient.systems.modules.world.*;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
-import meteordevelopment.meteorclient.utils.misc.MeteorIdentifier;
 import meteordevelopment.meteorclient.utils.misc.ValueComparableMap;
 import meteordevelopment.meteorclient.utils.misc.input.Input;
 import meteordevelopment.meteorclient.utils.misc.input.KeyAction;
@@ -51,6 +52,7 @@ import net.minecraft.registry.entry.RegistryEntryList;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.random.Random;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -67,11 +69,12 @@ public class Modules extends System<Modules> {
     private static final List<Category> CATEGORIES = new ArrayList<>();
 
     private final List<Module> modules = new ArrayList<>();
-    private final Map<Class<? extends Module>, Module> moduleInstances = new HashMap<>();
-    private final Map<Category, List<Module>> groups = new HashMap<>();
+    private final Map<Class<? extends Module>, Module> moduleInstances = new Reference2ReferenceOpenHashMap<>();
+    private final Map<Category, List<Module>> groups = new Reference2ReferenceOpenHashMap<>();
 
     private final List<Module> active = new ArrayList<>();
     private Module moduleToBind;
+    private boolean awaitingKeyRelease = false;
 
     public Modules() {
         super("modules");
@@ -119,6 +122,7 @@ public class Modules extends System<Modules> {
         return CATEGORIES;
     }
 
+    @Deprecated(forRemoval = true)
     public static Category getCategoryByHash(int hash) {
         for (Category category : CATEGORIES) {
             if (category.hashCode() == hash) return category;
@@ -168,10 +172,16 @@ public class Modules extends System<Modules> {
     }
 
     public Set<Module> searchTitles(String text) {
-        Map<Module, Integer> modules = new ValueComparableMap<>(Ordering.natural());
+        Map<Module, Integer> modules = new ValueComparableMap<>(Comparator.naturalOrder());
 
         for (Module module : this.moduleInstances.values()) {
             int score = Utils.searchLevenshteinDefault(module.title, text, false);
+            if (Config.get().moduleAliases.get()) {
+                for (String alias : module.aliases) {
+                    int aliasScore = Utils.searchLevenshteinDefault(alias, text, false);
+                    if (aliasScore < score) score = aliasScore;
+                }
+            }
             modules.put(module, modules.getOrDefault(module, 0) + score);
         }
 
@@ -179,7 +189,7 @@ public class Modules extends System<Modules> {
     }
 
     public Set<Module> searchSettingTitles(String text) {
-        Map<Module, Integer> modules = new ValueComparableMap<>(Ordering.natural());
+        Map<Module, Integer> modules = new ValueComparableMap<>(Comparator.naturalOrder());
 
         for (Module module : this.moduleInstances.values()) {
             int lowest = Integer.MAX_VALUE;
@@ -218,25 +228,40 @@ public class Modules extends System<Modules> {
         this.moduleToBind = moduleToBind;
     }
 
+    /***
+     * @see meteordevelopment.meteorclient.commands.commands.BindCommand
+     * For ensuring we don't instantly bind the module to the enter key.
+     */
+    public void awaitKeyRelease() {
+        this.awaitingKeyRelease = true;
+    }
+
     public boolean isBinding() {
         return moduleToBind != null;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onKeyBinding(KeyEvent event) {
-        if (event.action == KeyAction.Press && onBinding(true, event.key)) event.cancel();
+        if (event.action == KeyAction.Release && onBinding(true, event.key, event.modifiers)) event.cancel();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onButtonBinding(MouseButtonEvent event) {
-        if (event.action == KeyAction.Press && onBinding(false, event.button)) event.cancel();
+        if (event.action == KeyAction.Release && onBinding(false, event.button, 0)) event.cancel();
     }
 
-    private boolean onBinding(boolean isKey, int value) {
+    private boolean onBinding(boolean isKey, int value, int modifiers) {
         if (!isBinding()) return false;
 
-        if (moduleToBind.keybind.canBindTo(isKey, value)) {
-            moduleToBind.keybind.set(isKey, value);
+        if (awaitingKeyRelease) {
+            if (!isKey || (value != GLFW.GLFW_KEY_ENTER && value != GLFW.GLFW_KEY_KP_ENTER)) return false;
+
+            awaitingKeyRelease = false;
+            return false;
+        }
+
+        if (moduleToBind.keybind.canBindTo(isKey, value, modifiers)) {
+            moduleToBind.keybind.set(isKey, value, modifiers);
             moduleToBind.info("Bound to (highlight)%s(default).", moduleToBind.keybind);
         }
         else if (value == GLFW.GLFW_KEY_ESCAPE) {
@@ -254,22 +279,22 @@ public class Modules extends System<Modules> {
     @EventHandler(priority = EventPriority.HIGH)
     private void onKey(KeyEvent event) {
         if (event.action == KeyAction.Repeat) return;
-        onAction(true, event.key, event.action == KeyAction.Press);
+        onAction(true, event.key, event.modifiers, event.action == KeyAction.Press);
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     private void onMouseButton(MouseButtonEvent event) {
         if (event.action == KeyAction.Repeat) return;
-        onAction(false, event.button, event.action == KeyAction.Press);
+        onAction(false, event.button, 0, event.action == KeyAction.Press);
     }
 
-    private void onAction(boolean isKey, int value, boolean isPress) {
-        if (mc.currentScreen == null && !Input.isKeyPressed(GLFW.GLFW_KEY_F3)) {
-            for (Module module : moduleInstances.values()) {
-                if (module.keybind.matches(isKey, value) && (isPress || module.toggleOnBindRelease)) {
-                    module.toggle();
-                    module.sendToggledMsg();
-                }
+    private void onAction(boolean isKey, int value, int modifiers, boolean isPress) {
+        if (mc.currentScreen != null || Input.isKeyPressed(GLFW.GLFW_KEY_F3)) return;
+
+        for (Module module : moduleInstances.values()) {
+            if (module.keybind.matches(isKey, value, modifiers) && (isPress || (module.toggleOnBindRelease && module.isActive()))) {
+                module.toggle();
+                module.sendToggledMsg();
             }
         }
     }
@@ -413,24 +438,26 @@ public class Modules extends System<Modules> {
     private void initPlayer() {
         add(new AntiHunger());
         add(new AutoEat());
+        add(new AutoClicker());
         add(new AutoFish());
         add(new AutoGap());
         add(new AutoMend());
         add(new AutoReplenish());
         add(new AutoTool());
+        add(new BreakDelay());
         add(new ChestSwap());
         add(new EXPThrower());
         add(new FakePlayer());
         add(new FastUse());
         add(new GhostHand());
+        add(new InstantRebreak());
         add(new LiquidInteract());
         add(new MiddleClickExtra());
-        add(new BreakDelay());
+        add(new Multitask());
         add(new NoInteract());
         add(new NoMiningTrace());
         add(new NoRotate());
         add(new OffhandCrash());
-        add(new PacketMine());
         add(new Portals());
         add(new PotionSaver());
         add(new PotionSpoof());
@@ -446,6 +473,7 @@ public class Modules extends System<Modules> {
         add(new AntiVoid());
         add(new AutoJump());
         add(new AutoWalk());
+        add(new AutoWasp());
         add(new Blink());
         add(new BoatFly());
         add(new ClickTP());
@@ -513,12 +541,12 @@ public class Modules extends System<Modules> {
         add(new Blur());
         add(new PopChams());
         add(new TunnelESP());
+        add(new BetterTab());
     }
 
     private void initWorld() {
         add(new AirPlace());
         add(new Ambience());
-        add(new Collisions());
         add(new AutoBreed());
         add(new AutoBrewer());
         add(new AutoMount());
@@ -527,48 +555,51 @@ public class Modules extends System<Modules> {
         add(new AutoSign());
         add(new AutoSmelter());
         add(new BuildHeight());
+        add(new Collisions());
         add(new EChestFarmer());
         add(new EndermanLook());
-        add(new Excavator());
         add(new Flamethrower());
-        add(new InfinityMiner());
+        add(new HighwayBuilder());
         add(new LiquidFiller());
         add(new MountBypass());
         add(new NoGhostBlocks());
         add(new Nuker());
+        add(new PacketMine());
         add(new StashFinder());
         add(new SpawnProofer());
         add(new Timer());
         add(new VeinMiner());
-        add(new HighwayBuilder());
+
+        if (BaritoneUtils.IS_AVAILABLE) {
+            add(new Excavator());
+            add(new InfinityMiner());
+        }
     }
 
     private void initMisc() {
         add(new Swarm());
         add(new AntiPacketKick());
-        add(new AutoClicker());
         add(new AutoLog());
         add(new AutoReconnect());
         add(new AutoRespawn());
         add(new BetterBeacons());
         add(new BetterChat());
-        add(new BetterTab());
         add(new BookBot());
         add(new DiscordPresence());
+        add(new InventoryTweaks());
         add(new MessageAura());
         add(new NameProtect());
         add(new Notebot());
         add(new Notifier());
         add(new PacketCanceller());
+        add(new ServerSpoof());
         add(new SoundBlocker());
         add(new Spam());
-        add(new ServerSpoof());
-        add(new InventoryTweaks());
     }
 
     public static class ModuleRegistry extends SimpleRegistry<Module> {
         public ModuleRegistry() {
-            super(RegistryKey.ofRegistry(new MeteorIdentifier("modules")), Lifecycle.stable());
+            super(RegistryKey.ofRegistry(MeteorClient.identifier("modules")), Lifecycle.stable());
         }
 
         @Override
@@ -602,11 +633,6 @@ public class Modules extends System<Modules> {
         }
 
         @Override
-        public Lifecycle getEntryLifecycle(Module object) {
-            return null;
-        }
-
-        @Override
         public Lifecycle getLifecycle() {
             return null;
         }
@@ -627,7 +653,7 @@ public class Modules extends System<Modules> {
         }
 
         @Override
-        public Iterator<Module> iterator() {
+        public @NotNull Iterator<Module> iterator() {
             return new ModuleIterator();
         }
 

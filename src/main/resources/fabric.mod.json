@@ -19,9 +19,6 @@
   "icon": "assets/meteor-client/icon.png",
   "environment": "client",
   "entrypoints": {
-    "preLaunch": [
-      "com.llamalad7.mixinextras.MixinExtrasBootstrap::init"
-    ],
     "client": [
       "meteordevelopment.meteorclient.MeteorClient"
     ]
@@ -31,9 +28,8 @@
     "meteor-client-baritone.mixins.json",
     "meteor-client-indigo.mixins.json",
     "meteor-client-sodium.mixins.json",
-    "meteor-client-canvas.mixins.json",
     "meteor-client-lithium.mixins.json",
-    "meteor-client-indium.mixins.json"
+    "meteor-client-viafabricplus.mixins.json"
   ],
   "accessWidener": "meteor-client.accesswidener",
   "custom": {
@@ -47,15 +43,16 @@
     }
   },
   "depends": {
-    "java": ">=17",
-    "minecraft": [ "1.20", "1.20.1" ],
-    "fabricloader": ">=0.14.21"
+    "java": ">=21",
+    "minecraft": ["1.21", "${minecraft_version}"],
+    "fabricloader": ">=${loader_version}"
   },
   "breaks": {
     "optifabric": "*",
     "feather": "*",
     "origins": "*",
     "wurst": "*",
-    "sodium": "<0.5.0"
+    "sodium": "<0.6.0-beta.2",
+    "morechathistory": "*"
   }
 }

@@ -5,9 +5,9 @@
 
 package meteordevelopment.meteorclient.systems.modules.player;
 
-import baritone.api.BaritoneAPI;
 import meteordevelopment.meteorclient.events.entity.player.ItemUseCrosshairTargetEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
+import meteordevelopment.meteorclient.pathing.PathManagers;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Categories;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -21,6 +21,8 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.SlotUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.FoodComponent;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 
@@ -29,7 +31,7 @@ import java.util.List;
 import java.util.function.BiPredicate;
 
 public class AutoEat extends Module {
-    private static final Class<? extends Module>[] AURAS = new Class[] { KillAura.class, CrystalAura.class, AnchorAura.class, BedAura.class };
+    private static final Class<? extends Module>[] AURAS = new Class[]{KillAura.class, CrystalAura.class, AnchorAura.class, BedAura.class};
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgThreshold = settings.createGroup("Threshold");
@@ -50,7 +52,7 @@ public class AutoEat extends Module {
             Items.SPIDER_EYE,
             Items.SUSPICIOUS_STEW
         )
-        .filter(Item::isFood)
+        .filter(item -> item.getComponents().get(DataComponentTypes.FOOD) != null)
         .build()
     );
 
@@ -118,10 +120,10 @@ public class AutoEat extends Module {
         if (Modules.get().get(AutoGap.class).isEating()) return;
 
         if (eating) {
-            // If we are eating check if we should still be still eating
+            // If we are eating check if we should still be eating
             if (shouldEat()) {
                 // Check if the item in current slot is not food
-                if (!mc.player.getInventory().getStack(slot).isFood()) {
+                if (mc.player.getInventory().getStack(slot).get(DataComponentTypes.FOOD) != null) {
                     // If not try finding a new slot
                     int slot = findSlot();
 
@@ -143,8 +145,7 @@ public class AutoEat extends Module {
             else {
                 stopEating();
             }
-        }
-        else {
+        } else {
             // If we are not eating check if we should start eating
             if (shouldEat()) {
                 // Try to find a valid slot
@@ -179,9 +180,9 @@ public class AutoEat extends Module {
         }
 
         // Pause baritone
-        if (pauseBaritone.get() && BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().isPathing() && !wasBaritone) {
+        if (pauseBaritone.get() && PathManagers.get().isPathing() && !wasBaritone) {
             wasBaritone = true;
-            BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().execute("pause");
+            PathManagers.get().pause();
         }
     }
 
@@ -213,7 +214,7 @@ public class AutoEat extends Module {
         // Resume baritone
         if (pauseBaritone.get() && wasBaritone) {
             wasBaritone = false;
-            BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().execute("resume");
+            PathManagers.get().resume();
         }
     }
 
@@ -240,10 +241,11 @@ public class AutoEat extends Module {
         for (int i = 0; i < 9; i++) {
             // Skip if item isn't food
             Item item = mc.player.getInventory().getStack(i).getItem();
-            if (!item.isFood()) continue;
+            FoodComponent foodComponent = item.getComponents().get(DataComponentTypes.FOOD);
+            if (foodComponent == null) continue;
 
             // Check if hunger value is better
-            int hunger = item.getFoodComponent().getHunger();
+            int hunger = foodComponent.nutrition();
             if (hunger > bestHunger) {
                 // Skip if item is in blacklist
                 if (blacklist.get().contains(item)) continue;
@@ -255,7 +257,8 @@ public class AutoEat extends Module {
         }
 
         Item offHandItem = mc.player.getOffHandStack().getItem();
-        if (offHandItem.isFood() && !blacklist.get().contains(offHandItem) && offHandItem.getFoodComponent().getHunger() > bestHunger) slot = SlotUtils.OFFHAND;
+        if (offHandItem.getComponents().get(DataComponentTypes.FOOD) != null && !blacklist.get().contains(offHandItem) && offHandItem.getComponents().get(DataComponentTypes.FOOD).nutrition() > bestHunger)
+            slot = SlotUtils.OFFHAND;
 
         return slot;
     }

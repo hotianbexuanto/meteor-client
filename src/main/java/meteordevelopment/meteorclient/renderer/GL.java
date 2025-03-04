@@ -5,11 +5,9 @@
 
 package meteordevelopment.meteorclient.renderer;
 
-import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.platform.GlStateManager;
 import meteordevelopment.meteorclient.mixin.BufferRendererAccessor;
 import meteordevelopment.meteorclient.mixininterface.ICapabilityTracker;
-import meteordevelopment.meteorclient.utils.PreInit;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Identifier;
 import org.joml.Matrix4f;
@@ -18,6 +16,7 @@ import org.lwjgl.BufferUtils;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.util.List;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 import static org.lwjgl.opengl.GL32C.*;
@@ -32,14 +31,10 @@ public class GL {
 
     private static boolean depthSaved, blendSaved, cullSaved, scissorSaved;
 
-    private static boolean changeBufferRenderer = true;
-
     public static int CURRENT_IBO;
     private static int prevIbo;
 
-    @PreInit
-    public static void init() {
-        if (FabricLoader.getInstance().isModLoaded("canvas")) changeBufferRenderer = false;
+    private GL() {
     }
 
     // Generation
@@ -90,7 +85,7 @@ public class GL {
 
     public static void bindVertexArray(int vao) {
         GlStateManager._glBindVertexArray(vao);
-        if (changeBufferRenderer) BufferRendererAccessor.setCurrentVertexBuffer(null);
+        BufferRendererAccessor.setCurrentVertexBuffer(null);
     }
 
     public static void bindVertexBuffer(int vbo) {
@@ -133,7 +128,7 @@ public class GL {
     }
 
     public static void shaderSource(int shader, String source) {
-        GlStateManager.glShaderSource(shader, ImmutableList.of(source));
+        GlStateManager.glShaderSource(shader, List.of(source));
     }
 
     public static String compileShader(int shader) {
@@ -338,8 +333,7 @@ public class GL {
             capStateField.setAccessible(true);
             return (ICapabilityTracker) capStateField.get(state);
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-            return null;
+            throw new IllegalStateException("Could not find GL state tracker '" + fieldName + "'", e);
         }
     }
 }
