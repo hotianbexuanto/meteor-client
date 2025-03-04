@@ -7,7 +7,7 @@ package meteordevelopment.meteorclient.mixin.lithium;
 
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.world.CollisionShapeEvent;
-import net.caffeinemc.mods.lithium.common.entity.movement.ChunkAwareBlockCollisionSweeper;
+import me.jellysquid.mods.lithium.common.entity.movement.ChunkAwareBlockCollisionSweeper;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.client.MinecraftClient;
