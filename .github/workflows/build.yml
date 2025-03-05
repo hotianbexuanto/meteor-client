@@ -22,6 +22,16 @@ jobs:
 
       - run: chmod +x gradlew
 
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 8.8
+
+      - name: Configure Gradle
+        run: |
+          mkdir -p $HOME/.gradle
+          echo "systemProp.modrinth.maven=https://api.modrinth.com/maven" >> $HOME/.gradle/gradle.properties
+
       - name: Set up Node JS
         uses: actions/setup-node@v3
         with:
@@ -35,7 +45,7 @@ jobs:
           node get_number.js >> $GITHUB_OUTPUT
 
       - name: Build
-        run: ./gradlew build -Pcommit=${{ github.sha }} -Pdevbuild=${{ steps.dev-build.outputs.number }}
+        run: ./gradlew build --refresh-dependencies -Pcommit=${{ github.sha }} -Pdevbuild=${{ steps.dev-build.outputs.number }}
 
       - name: Get build timestamp
         id: timestamp
