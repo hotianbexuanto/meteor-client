@@ -20,11 +20,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 8.8
-
       - run: chmod +x gradlew
 
       - name: Set up Node JS
@@ -39,17 +34,8 @@ jobs:
           npm install
           node get_number.js >> $GITHUB_OUTPUT
 
-      - name: Build with debug info
-        run: |
-          # 显示Gradle和Java版本
-          ./gradlew --version
-          java -version
-          
-          # 清理构建缓存
-          ./gradlew clean
-          
-          # 使用--stacktrace和--info参数构建以获取更多调试信息
-          ./gradlew build --stacktrace --info -Pcommit=${{ github.sha }} -Pdevbuild=${{ steps.dev-build.outputs.number }}
+      - name: Build
+        run: ./gradlew build -Pcommit=${{ github.sha }} -Pdevbuild=${{ steps.dev-build.outputs.number }}
 
       - name: Get build timestamp
         id: timestamp

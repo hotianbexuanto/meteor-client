@@ -58,8 +58,7 @@ dependencies {
     // Compat fixes
     modCompileOnly fabricApi.module("fabric-renderer-indigo", project.fapi_version)
     modCompileOnly("maven.modrinth:sodium:${project.sodium_version}") { transitive = false }
-    // TODO: Temporarily disabled until Lithium for MC 1.21.1 is available
-    // modCompileOnly("maven.modrinth:lithium:0.14.2-mc1.21.1") { transitive = false }
+    modCompileOnly("maven.modrinth:lithium:${project.lithium_version}") { transitive = false }
     modCompileOnly("maven.modrinth:iris:${project.iris_version}") { transitive = false }
     modCompileOnly("de.florianmichael:ViaFabricPlus:${project.viafabricplus_version}") { transitive = false }
 
