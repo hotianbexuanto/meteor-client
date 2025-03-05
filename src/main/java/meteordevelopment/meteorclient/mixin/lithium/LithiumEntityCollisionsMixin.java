@@ -7,7 +7,7 @@ package meteordevelopment.meteorclient.mixin.lithium;
 
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.world.Collisions;
-import net.caffeinemc.mods.lithium.common.entity.LithiumEntityCollisions;
+import me.jellysquid.mods.lithium.common.entity.LithiumEntityCollisions;
 import net.minecraft.util.math.Box;
 import net.minecraft.world.border.WorldBorder;
 import org.spongepowered.asm.mixin.Mixin;
