@@ -28,6 +28,10 @@ repositories {
         }
     }
     maven {
+        name = "caffeinemc"
+        url = "https://maven.caffeinemc.net/"
+    }
+    maven {
         name = "vram"
         url = "https://maven.vram.io//"
     }
@@ -57,8 +61,8 @@ dependencies {
 
     // Compat fixes
     modImplementation fabricApi.module("fabric-renderer-indigo", project.fapi_version)
-    modImplementation("maven.modrinth:sodium:${project.sodium_version}")
-    modImplementation("maven.modrinth:lithium:${project.lithium_version}")
+    modImplementation("me.jellysquid.mods:sodium-fabric:${project.sodium_version}")
+    modImplementation("me.jellysquid.mods:lithium-fabric:${project.lithium_version}")
     modCompileOnly("maven.modrinth:iris:${project.iris_version}") { transitive = false }
     modCompileOnly("de.florianmichael:ViaFabricPlus:${project.viafabricplus_version}") { transitive = false }
 
