@@ -1,7 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-import fetch from 'node-fetch';
-import { FormData, Blob } from 'node-fetch';
+const fs = require("fs");
+const path = require("path");
 
 const branch = process.argv[2];
 const compareUrl = process.argv[3];
