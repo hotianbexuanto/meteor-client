@@ -22,20 +22,6 @@ jobs:
 
       - run: chmod +x gradlew
 
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 8.8
-
-      - name: Configure Gradle
-        run: |
-          mkdir -p $HOME/.gradle
-          cat << EOF > $HOME/.gradle/gradle.properties
-          systemProp.modrinth.maven=https://api.modrinth.com/maven
-          systemProp.maven.modrinth=https://api.modrinth.com/maven
-          systemProp.modrinth.repository=https://api.modrinth.com/maven
-          EOF
-
       - name: Set up Node JS
         uses: actions/setup-node@v3
         with:
@@ -46,16 +32,10 @@ jobs:
         run: |
           cd .github/devbuilds
           npm install
-          BUILD_NUMBER=$(node get_number.js)
-          if [ -z "$BUILD_NUMBER" ] || [ "$BUILD_NUMBER" = "NaN" ]; then
-            BUILD_NUMBER=1
-          fi
-          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          node get_number.js >> $GITHUB_OUTPUT
 
       - name: Build
-        run: |
-          ./gradlew clean --no-daemon
-          ./gradlew build --refresh-dependencies --stacktrace --info -Pcommit=${{ github.sha }} -Pdevbuild=${{ env.BUILD_NUMBER }}
+        run: ./gradlew build -Pcommit=${{ github.sha }} -Pdevbuild=${{ steps.dev-build.outputs.number }}
 
       - name: Get build timestamp
         id: timestamp
