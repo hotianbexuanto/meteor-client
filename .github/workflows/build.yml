@@ -1,4 +1,4 @@
-name: Build
+name: 构建
 
 concurrency:
   group: "build"
@@ -14,53 +14,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: 检出代码仓库
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Set up Gradle
+      - name: 设置 Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Set up Java
+      - name: 设置 Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Set up Node JS
+      - name: 设置 Node JS
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Get current build number
+      - name: 获取当前构建编号
         id: build-number
         run: |
           cd .github/builds
           npm install
           npm run --silent get_number >> $GITHUB_OUTPUT
 
-      - name: Build
+      - name: 构建
         run: ./gradlew build -Pcommit=${{ github.sha }} -Pbuild_number=${{ steps.build-number.outputs.number }}
 
-      - name: Webhook Failure
-        if: ${{ failure() }}
-        run: |
-          cd .github/builds
-          npm run webhook -- ${{ steps.build-number.outputs.number }} ${{ github.ref_name }} https://api.github.com/repos/MeteorDevelopment/meteor-client/compare/${{ github.event.before }}...${{ github.event.after }} false
+      - name: 上传到 GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/*.jar
+          tag_name: build-${{ steps.build-number.outputs.number }}
+          name: 构建 ${{ steps.build-number.outputs.number }}
+          body: |
+            构建编号: ${{ steps.build-number.outputs.number }}
+            提交哈希: ${{ github.sha }}
+            变更对比: https://github.com/MeteorDevelopment/meteor-client/compare/${{ github.event.before }}...${{ github.event.after }}
+          draft: false
+          prerelease: true
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-
-      - name: Publish
-        run: ./gradlew publish -Pcommit=${{ github.sha }} -Pbuild_number=${{ steps.build-number.outputs.number }}
-        env:
-          MAVEN_METEOR_ALIAS: ${{ secrets.MAVEN_METEOR_ALIAS }}
-          MAVEN_METEOR_TOKEN: ${{ secrets.MAVEN_METEOR_TOKEN }}
-
-      - name: Discord webhook
-        run: |
-          cd .github/builds
-          npm run webhook -- ${{ steps.build-number.outputs.number }} ${{ github.ref_name }} https://api.github.com/repos/MeteorDevelopment/meteor-client/compare/${{ github.event.before }}...${{ github.event.after }} true
-        env:
-          SERVER_TOKEN: ${{ secrets.SERVER_TOKEN }}
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
